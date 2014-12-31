@@ -1,0 +1,12 @@
+*.pyc
+*.so
+*.pyd
+*~
+
+/dist/
+
+/*.egg-info
+
+*.prefs
+.pydevproject
+.idea

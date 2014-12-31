@@ -1,0 +1,4 @@
+include LICENCE
+include README.md
+
+recursive-include reveal_user_classification *.pyx *.c
