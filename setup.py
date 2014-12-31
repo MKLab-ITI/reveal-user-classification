@@ -73,9 +73,6 @@ setup(
               'reveal_user_classification.experiments.asu_experiments'],
     cmdclass=cmdclass,
     ext_modules=ext_modules,
-    entry_points={
-        'console_scripts': ['reveal_wp2_user_classification=reveal_user_classification.reveal_wp2_user_classification:main'],
-    },
     url='https://github.com/MKLab-ITI/reveal-user-classification',
     license='Apache',
     description='Performs user classification into labels using a set of seed Twitter users with known labels and'
