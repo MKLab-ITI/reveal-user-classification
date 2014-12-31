@@ -13,7 +13,8 @@ Features
 
 Usage
 =====
-Script X is an example of proper usage. Run it to get results.
+Script .../reveal_user_classification/experiments/asu_experiments/test_run is an example of proper usage.
+Run it to get results.
  
 Install
 =======
