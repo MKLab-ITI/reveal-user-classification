@@ -180,9 +180,6 @@ def fetch_twitter_lists(local_client, centrality):
     # Calculate the 100 most central users.
     user_ids_to_annotate = decide_which_users_to_annotate(centrality_vector=centrality, start_index=0, offset=100)
 
-    # Find the users for which we do not have already fetched lists.
-    # TODO: This will probably be important.
-
     # Fetch Twitter lists.
     twitter_lists_gen = fetch_twitter_lists_for_user_ids_generator(user_ids_to_annotate)
 
