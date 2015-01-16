@@ -53,7 +53,6 @@ else:
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
                                  extra_link_args=['-fopenmp']))
 
-# TODO: Add keywords.
 setup(
     name='reveal-user-classification',
     version='0.1.1',
