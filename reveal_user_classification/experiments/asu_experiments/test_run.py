@@ -2,8 +2,8 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import numpy as np
 
-from reveal_user_classification.common.config_package import get_threads_number
-from reveal_user_classification.common.config_package import get_raw_datasets_path
+from reveal_user_annotation.common.config_package import get_threads_number
+from reveal_user_annotation.common.config_package import get_raw_datasets_path
 from reveal_user_classification.datautil.asu_read_data import read_adjacency_matrix
 from reveal_user_classification.datautil.asu_read_data import read_node_label_matrix
 try:

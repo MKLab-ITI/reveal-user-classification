@@ -56,11 +56,10 @@ else:
 # TODO: Add keywords.
 setup(
     name='reveal-user-classification',
-    version='0.1',
+    version='0.1.1',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',
-              'reveal_user_classification.common',
               'reveal_user_classification.datautil',
               'reveal_user_classification.embedding',
               'reveal_user_classification.embedding.arcte',
@@ -70,7 +69,8 @@ setup(
               'reveal_user_classification.eps_randomwalk.benchmarks.time_comparisons',
               'reveal_user_classification.eps_randomwalk.cython_opt',
               'reveal_user_classification.experiments',
-              'reveal_user_classification.experiments.asu_experiments'],
+              'reveal_user_classification.experiments.asu_experiments',
+              'reveal_user_classification.entry_points'],
     cmdclass=cmdclass,
     ext_modules=ext_modules,
     url='https://github.com/MKLab-ITI/reveal-user-classification',
@@ -94,11 +94,17 @@ setup(
         'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Scientific/Engineering :: Information Analysis'
     ],
+    keywords="online-social-network user-classification Reveal-FP7",
+    entry_points={
+        'console_scripts': ['user_network_profile_classifier=reveal_user_classification.entry_points.entry_point:main'],
+    },
+    include_package_data=False,
     install_requires=[
         "numpy",
         "scipy",
         "scikit-learn",
         "Cython",
-        "python-louvain"
+        "python-louvain",
+        "reveal-user-annotation"
     ],
 )

@@ -31,3 +31,4 @@ def make_directory_tree(raw_data_path, memory_path):
     make_sure_path_exists(memory_path + "/folds")
     make_sure_path_exists(memory_path + "/figures")
     make_sure_path_exists(memory_path + "/predictions")
+    make_sure_path_exists(memory_path + "/scores")

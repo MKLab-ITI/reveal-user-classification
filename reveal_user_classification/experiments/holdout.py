@@ -4,7 +4,7 @@ import numpy as np
 import numpy.random as rand
 import os
 
-from reveal_user_classification.common import datarw
+from reveal_user_annotation.common import datarw
 
 
 def get_folds_generator(node_label_matrix, labelled_node_indices, number_of_categories, memory_path, percentage):
