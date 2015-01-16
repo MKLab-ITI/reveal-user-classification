@@ -2,16 +2,16 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import numpy as np
 
-from reveal_user_classification.classification import model_fit, classify_users
-from reveal_user_annotation.common.config_package import get_threads_number
-from reveal_user_annotation.mongo.mongo_util import start_local_mongo_daemon, establish_mongo_connection
-from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
-    extract_graphs_and_lemmas_from_tweets,  store_user_documents, read_twitter_lists_from_mongo_generator,\
-    extract_connected_components
 try:
     from reveal_user_classification.embedding.arcte.cython_opt.arcte import arcte_and_centrality
 except ImportError:
     from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
+from reveal_user_classification.classification import model_fit, classify_users
+from reveal_user_annotation.common.config_package import get_threads_number
+from reveal_user_annotation.mongo.mongo_util import start_local_mongo_daemon, establish_mongo_connection
+from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
+    extract_graphs_and_lemmas_from_tweets,  store_user_documents, read_user_documents_generator,\
+    extract_connected_components
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
 
@@ -189,9 +189,9 @@ def fetch_twitter_lists(local_client, centrality):
                          database_name="twitter_list_database")
 
 
-    twitter_lists_gen = read_twitter_lists_from_mongo_generator(user_ids_to_annotate,
-                                                                client=local_client,
-                                                                database_name="twitter_list_database")
+    twitter_lists_gen = read_user_documents_generator(user_ids_to_annotate,
+                                                      client=local_client,
+                                                      database_name="twitter_list_database")
 
     return twitter_lists_gen, user_ids_to_annotate
 
@@ -215,9 +215,9 @@ def annotate_users(local_client, twitter_lists_gen, user_ids_to_annotate):
                          client=local_client,
                          database_name="twitter_list_keywords_database")
 
-    user_twitter_list_keywords_gen = read_twitter_lists_from_mongo_generator(user_ids_to_annotate,
-                                                                             client=local_client,
-                                                                             database_name="twitter_list_keywords_database")
+    user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_annotate,
+                                                                   client=local_client,
+                                                                   database_name="twitter_list_keywords_database")
 
     # Annotate users.
     user_label_matrix, annotated_user_ids = form_user_label_matrix(user_twitter_list_keywords_gen)
