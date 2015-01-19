@@ -59,7 +59,9 @@ def user_network_profile_classifier(assessment_id):
 
     twitter_lists_gen, user_ids_to_annotate = fetch_twitter_lists(local_client, centrality)
 
-    user_label_matrix, annotated_user_ids = annotate_users(local_client, twitter_lists_gen, user_ids_to_annotate)
+    user_label_matrix, annotated_user_ids, label_to_topic = annotate_users(local_client,
+                                                                           twitter_lists_gen,
+                                                                           user_ids_to_annotate)
 
     ####################################################################################################################
     # Perform user classification.
@@ -226,9 +228,9 @@ def annotate_users(local_client, twitter_lists_gen, user_ids_to_annotate):
                                                                    database_name="twitter_list_keywords_database")
 
     # Annotate users.
-    user_label_matrix, annotated_user_ids = form_user_label_matrix(user_twitter_list_keywords_gen)
+    user_label_matrix, annotated_user_ids, label_to_topic = form_user_label_matrix(user_twitter_list_keywords_gen)
 
-    return user_label_matrix, annotated_user_ids
+    return user_label_matrix, annotated_user_ids, label_to_topic
 
 
 def user_classification(features, user_label_matrix, annotated_user_ids, node_to_id):
