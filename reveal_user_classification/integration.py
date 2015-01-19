@@ -207,9 +207,15 @@ def annotate_users(local_client, twitter_lists_gen, user_ids_to_annotate):
     Outputs: - user_label_matrix: A user-to-label matrix in scipy sparse matrix format.
              - annotated_user_ids: A list of Twitter user ids.
     """
+    # Find the users for which keywords have not been extracted yet.
+    # users_to_be_processed_list = find_users_to_preprocess(user_twitter_id_list,
+    #                                                       source_database,
+    #                                                       target_database)
+
     # Process lists and store keywords in mongo.
+    # TODO: Do asynchronous I/O and preprocessing.
     user_twitter_list_keywords_gen = extract_user_keywords_generator(twitter_lists_gen,
-                                                                      lemmatizing="wordnet")
+                                                                     lemmatizing="wordnet")
 
     store_user_documents(user_twitter_list_keywords_gen,
                          client=local_client,

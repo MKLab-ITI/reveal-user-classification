@@ -2,6 +2,7 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn import svm
+import scipy.sparse as spsp
 
 
 def model_fit(X_train, y_train, svm_hardness, fit_intercept, number_of_threads):
@@ -55,6 +56,10 @@ def classify_users(X_test, model):
 
     Output:  - decision_weights: A NumPy array containing the distance of each user from each label discriminator.
     """
-    prediction = model.predict(X_test)
+    prediction = model.decision_function(X_test)
+
+    prediction[prediction > 0] = 1.0
+    prediction[prediction <= 0] = 0.0
+    prediction = spsp.coo_matrix(prediction)
 
     return prediction
