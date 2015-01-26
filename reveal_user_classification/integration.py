@@ -1,6 +1,7 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import numpy as np
+import datetime
 
 try:
     from reveal_user_classification.embedding.arcte.cython_opt.arcte import arcte_and_centrality
@@ -16,7 +17,7 @@ from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_a
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
 
 
-def user_network_profile_classifier(assessment_id):
+def user_network_profile_classifier(assessment_id, **kwargs):
     """
     Performs Online Social Network user classification.
 
@@ -30,7 +31,28 @@ def user_network_profile_classifier(assessment_id):
            - Stores the results at PServer.
 
     Input: - assessment_id: The connection details for making a connection with a MongoDB instance.
+           - **kwargs: 1) + number_of_latest_tweets
+                       2) + lower_timestamp
+                          + upper_timestamp
+                       3) + number_of_latest_tweets
+                          + lower_timestamp
+                          + upper_timestamp
     """
+    # Manage argument input.
+    if "number_of_latest_tweets" not in kwargs.keys():
+        number_of_latest_tweets = None
+    else:
+        number_of_latest_tweets = kwargs["number_of_latest_tweets"]
+
+    if ("lower_timestamp" in kwargs.keys()) and ("upper_timestamp" in kwargs.keys()):
+        lower_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(kwargs["lower_timestamp"]),
+                                                    "%b %d %Y %H:%M:%S")
+        upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(kwargs["upper_timestamp"]),
+                                                    "%b %d %Y %H:%M:%S")
+        spec = {'time': {'$gte': lower_datetime, '$lt': upper_datetime}}
+    else:
+        spec = None
+
     # Start a local mongo daemon.
     daemon = start_local_mongo_daemon()
     daemon.start()
@@ -44,7 +66,11 @@ def user_network_profile_classifier(assessment_id):
     # Preprocess tweets.
     ####################################################################################################################
     mention_graph, retweet_graph, user_lemma_matrix, tweet_id_set, user_id_set, lemma_to_attribute =\
-        get_graphs_and_lemma_matrix(external_client, database_name, collection_name)
+        get_graphs_and_lemma_matrix(external_client,
+                                    database_name,
+                                    collection_name,
+                                    spec,
+                                    number_of_latest_tweets)
 
     adjacency_matrix, node_to_id, features, centrality = integrate_graphs(mention_graph,
                                                                           retweet_graph,
@@ -115,13 +141,19 @@ def establish_mongodb_connection(assessment_id):
     return external_client, database_name, collection_name
 
 
-def get_graphs_and_lemma_matrix(external_client, database_name, collection_name):
+def get_graphs_and_lemma_matrix(external_client,
+                                database_name,
+                                collection_name,
+                                spec,
+                                number_of_latest_tweets):
     """
     Processes a set of tweets and extracts interaction graphs and a user-lemma vector representation matrix.
 
     Inputs:  - external_client: A MongoDB client.
              - database_name: The name of a Mongo database.
              - collection_name: The name of the collection of tweets.
+             - spec: A python dictionary that defines higher query arguments.
+             - number_of_latest_tweets: The number of latest results we require from the mongo document collection.
 
     Outputs: - mention_graph: The mention graph as a SciPy sparse matrix.
              - retweet_graph: The retweet graph as a SciPy sparse matrix.
@@ -133,7 +165,10 @@ def get_graphs_and_lemma_matrix(external_client, database_name, collection_name)
     # Form the mention and retweet graphs, as well as the attribute matrix.
     tweet_gen = get_collection_documents_generator(mongodb_client=external_client,
                                                    database_name=database_name,
-                                                   collection_name=collection_name)
+                                                   collection_name=collection_name,
+                                                   spec=spec,
+                                                   latest_n=number_of_latest_tweets,
+                                                   sort_key="created_at")
 
     mention_graph, retweet_graph, user_lemma_matrix, tweet_id_set, user_id_set, lemma_to_attribute =\
         extract_graphs_and_lemmas_from_tweets(tweet_gen)
