@@ -17,7 +17,7 @@ from reveal_user_annotation.mongo.preprocess_data import get_collection_document
     extract_connected_components
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
-from reveal_user_annotation.pserver.request import write_topics_to_pserver
+# from reveal_user_annotation.pserver.request import write_topics_to_pserver
 
 
 def user_network_profile_classifier(mongo_uri,
@@ -101,7 +101,7 @@ def user_network_profile_classifier(mongo_uri,
     # Write to PServer.
     ####################################################################################################################
     user_topic_gen = get_user_topic_generator(prediction, node_to_id, label_to_topic)
-    write_topics_to_pserver(user_topic_gen)
+    # write_topics_to_pserver(user_topic_gen)
 
     # Stop the local mongo daemon.
     # daemon.join()
@@ -146,7 +146,7 @@ def get_graphs_and_lemma_matrix(client,
              - lemma_to_attribute: A map from lemmas to numbers in python dictionary format.
     """
     # Form the mention and retweet graphs, as well as the attribute matrix.
-    tweet_gen = get_collection_documents_generator(mongodb_client=client,
+    tweet_gen = get_collection_documents_generator(client=client,
                                                    database_name=database_name,
                                                    collection_name=collection_name,
                                                    spec=spec,
@@ -236,11 +236,11 @@ def annotate_users(client, twitter_lists_gen, user_ids_to_annotate):
 
     store_user_documents(user_twitter_list_keywords_gen,
                          client=client,
-                         database_name="twitter_list_keywords_database")
+                         mongo_database_name="twitter_list_keywords_database")
 
     user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_annotate,
                                                                    client=client,
-                                                                   database_name="twitter_list_keywords_database")
+                                                                   mongo_database_name="twitter_list_keywords_database")
 
     # Annotate users.
     user_label_matrix, annotated_user_ids, label_to_topic = form_user_label_matrix(user_twitter_list_keywords_gen)
