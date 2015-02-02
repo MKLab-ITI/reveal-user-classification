@@ -26,12 +26,12 @@ def arcte(adjacency_matrix, double rho, double epsilon):
 
     Outputs: - X in R^(nxC_n): The latent space embedding represented as a SciPy Sparse COOrdinate matrix.
     """
-    adjacency_matrix = adjacency_matrix.tocsr()
+    adjacency_matrix = sparse.csr_matrix(adjacency_matrix)
     number_of_nodes = adjacency_matrix.shape[0]
 
     # Calculate natural random walk transition probability matrix
-    cdef np.ndarray[INT64_t, ndim=1] out_degree
-    cdef np.ndarray[INT64_t, ndim=1] in_degree
+    cdef np.ndarray[FLOAT64_t, ndim=1] out_degree
+    cdef np.ndarray[FLOAT64_t, ndim=1] in_degree
     rw_transition, out_degree, in_degree = get_natural_random_walk_matrix(adjacency_matrix)
 
     # Store adjacent nodes and corresponding transition weights in array of arrays form.
@@ -121,12 +121,12 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
     Outputs: - X in R^(nxC_n): The latent space embedding represented as a SciPy Sparse COOrdinate matrix.
              - centrality in R^(nx1): A vector containing the RCT measure of centrality.
     """
-    adjacency_matrix = adjacency_matrix.tocsr()
+    adjacency_matrix = sparse.csr_matrix(adjacency_matrix)
     number_of_nodes = adjacency_matrix.shape[0]
 
     # Calculate natural random walk transition probability matrix
-    cdef np.ndarray[INT64_t, ndim=1] out_degree
-    cdef np.ndarray[INT64_t, ndim=1] in_degree
+    cdef np.ndarray[FLOAT64_t, ndim=1] out_degree
+    cdef np.ndarray[FLOAT64_t, ndim=1] in_degree
     rw_transition, out_degree, in_degree = get_natural_random_walk_matrix(adjacency_matrix)
 
     # Store adjacent nodes and corresponding transition weights in array of arrays form.
@@ -145,14 +145,23 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
 
     cdef long number_of_local_communities = 0
 
+    cdef np.ndarray [FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
+    cdef np.ndarray [FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
     cdef np.ndarray centrality = np.zeros(number_of_nodes, dtype=FLOAT64)
 
     cdef np.ndarray[INT64_t, ndim=1] iterate_nodes = np.where(out_degree != 0)[0]
     cdef long seed_node
     for seed_node in iterate_nodes:
         # print(seed_node)
+
+        for node in range(number_of_nodes):
+            s[node] = 0
+            r[node] = 0
+
         # Calculate similarity matrix slice
-        s, r, nop = fast_approximate_regularized_commute(base_transitions,
+        nop = fast_approximate_regularized_commute(s,
+                                                   r,
+                                                     base_transitions,
                                                          adjacent_nodes,
                                                          out_degree,
                                                          in_degree,
@@ -160,17 +169,19 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
                                                          rho,
                                                          epsilon)
 
+        s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+
         # Perform degree normalization of approximate similarity matrix slice
-        relevant_degrees = in_degree[s.indices]
-        s.data = np.divide(s.data, relevant_degrees)
+        relevant_degrees = in_degree[s_sparse.indices]
+        s_sparse.data = np.divide(s_sparse.data, relevant_degrees)
 
         # Adjust centrality
-        centrality += s
+        centrality += s_sparse
 
         # Sort the degree normalized approximate similarity matrix slice
-        sorted_indices = np.argsort(s.data, axis=0)
-        s.data = s.data[sorted_indices]
-        s.indices = s.indices[sorted_indices]
+        sorted_indices = np.argsort(s_sparse.data, axis=0)
+        s_sparse.data = s_sparse.data[sorted_indices]
+        s_sparse.indices = s_sparse.indices[sorted_indices]
 
         # Iterate over the support of the distribution to detect local community
         base_community = set(adjacent_nodes[seed_node])
@@ -179,8 +190,8 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
 
         base_community_count = 0
         most_unlikely_index = 0
-        for i in np.arange(1, s.data.size + 1):
-            if s.indices[-i] in base_community:
+        for i in np.arange(1, s_sparse.data.size + 1):
+            if s_sparse.indices[-i] in base_community:
                 base_community_count += 1
                 if base_community_count == base_community_size:
                     most_unlikely_index = i
@@ -188,7 +199,7 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
 
         # Save feature matrix coordinates
         if most_unlikely_index > base_community_count:
-            new_rows = s.indices[-1:-most_unlikely_index-1:-1]
+            new_rows = s_sparse.indices[-1:-most_unlikely_index-1:-1]
             extend_row(new_rows)
             extend_col(number_of_local_communities*np.ones_like(new_rows))
             number_of_local_communities += 1

@@ -13,14 +13,13 @@ from reveal_user_classification.eps_randomwalk.cython_opt.push import regularize
 FLOAT64 = np.float64
 ctypedef np.float64_t FLOAT64_t
 
-INT64 = np.int64
-ctypedef np.int64_t INT64_t
 
-
-def fast_approximate_personalized_pagerank(np.ndarray w_i,
+def fast_approximate_personalized_pagerank(np.ndarray[FLOAT64_t, ndim=1] s,
+                                           np.ndarray[FLOAT64_t, ndim=1] r,
+                                           np.ndarray w_i,
                                            np.ndarray a_i,
-                                           np.ndarray[INT64_t, ndim=1] out_degree,
-                                           np.ndarray[INT64_t, ndim=1] in_degree,
+                                           np.ndarray[FLOAT64_t, ndim=1] out_degree,
+                                           np.ndarray[FLOAT64_t, ndim=1] in_degree,
                                            long seed_node,
                                            double rho,
                                            double epsilon):
@@ -30,8 +29,8 @@ def fast_approximate_personalized_pagerank(np.ndarray w_i,
     number_of_nodes = a_i.size
 
     # Initialize the similarity matrix slice and the residual distribution
-    cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
-    cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
     r[seed_node] = 1.0
 
     # Initialize queue of nodes to be pushed
@@ -41,7 +40,7 @@ def fast_approximate_personalized_pagerank(np.ndarray w_i,
     # Do one push anyway
     push_node = pushable.popleft()
 
-    s, r = pagerank_limit_push(s,
+    pagerank_limit_push(s,
                                r,
                                w_i[push_node],
                                a_i[push_node],
@@ -57,7 +56,7 @@ def fast_approximate_personalized_pagerank(np.ndarray w_i,
         # While there are nodes with large residual probabilities, push
         push_node = pushable.popleft()
         if r[push_node]/in_degree[push_node] >= epsilon:
-            s, r = pagerank_limit_push(s,
+            pagerank_limit_push(s,
                                        r,
                                        w_i[push_node],
                                        a_i[push_node],
@@ -70,16 +69,18 @@ def fast_approximate_personalized_pagerank(np.ndarray w_i,
                 pushable.extend(a_i[push_node][i])
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations
 
 
-def lazy_approximate_personalized_pagerank(np.ndarray w_i,
+def lazy_approximate_personalized_pagerank(np.ndarray[FLOAT64_t, ndim=1] s,
+                                           np.ndarray[FLOAT64_t, ndim=1] r,
+                                           np.ndarray w_i,
                                          np.ndarray a_i,
-                                         np.ndarray[INT64_t, ndim=1] out_degree,
-                                         np.ndarray[INT64_t, ndim=1] in_degree,
+                                         np.ndarray[FLOAT64_t, ndim=1] out_degree,
+                                         np.ndarray[FLOAT64_t, ndim=1] in_degree,
                                          long seed_node,
                                          double rho,
                                          double epsilon,
@@ -94,8 +95,8 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
     number_of_nodes = a_i.size
 
     # Initialize the similarity matrix slice and the residual distribution
-    cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
-    cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
     r[seed_node] = 1.0
 
     # Initialize queue of nodes to be pushed
@@ -105,7 +106,7 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
     # Do one push anyway
     push_node = pushable.popleft()
 
-    s, r = pagerank_lazy_push(s,
+    pagerank_lazy_push(s,
                               r,
                               w_i[push_node],
                               a_i[push_node],
@@ -119,7 +120,7 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
         pushable.extend(a_i[push_node][i])
 
     while r[push_node]/in_degree[push_node] >= epsilon:
-        s, r = pagerank_lazy_push(s,
+        pagerank_lazy_push(s,
                                   r,
                                   w_i[push_node],
                                   a_i[push_node],
@@ -133,7 +134,7 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
         push_node = pushable.popleft()
 
         if r[push_node]/in_degree[push_node] >= epsilon:
-            s, r = pagerank_lazy_push(s,
+            pagerank_lazy_push(s,
                                       r,
                                       w_i[push_node],
                                       a_i[push_node],
@@ -147,7 +148,7 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
                 pushable.extend(a_i[push_node][i])
 
         while r[push_node]/in_degree[push_node] >= epsilon:
-            s, r = pagerank_lazy_push(s,
+            pagerank_lazy_push(s,
                                       r,
                                       w_i[push_node],
                                       a_i[push_node],
@@ -157,16 +158,18 @@ def lazy_approximate_personalized_pagerank(np.ndarray w_i,
             number_of_push_operations += 1
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations
 
 
-def fast_approximate_regularized_commute(np.ndarray w_i,
+def fast_approximate_regularized_commute(np.ndarray[FLOAT64_t, ndim=1] s,
+                                         np.ndarray[FLOAT64_t, ndim=1] r,
+                                         np.ndarray w_i,
                                          np.ndarray a_i,
-                                         np.ndarray[INT64_t, ndim=1] out_degree,
-                                         np.ndarray[INT64_t, ndim=1] in_degree,
+                                         np.ndarray[FLOAT64_t, ndim=1] out_degree,
+                                         np.ndarray[FLOAT64_t, ndim=1] in_degree,
                                          long seed_node,
                                          double rho,
                                          double epsilon):
@@ -188,8 +191,8 @@ def fast_approximate_regularized_commute(np.ndarray w_i,
     number_of_nodes = a_i.size
 
     # Initialize the similarity matrix slice and the residual distribution
-    cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
-    cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
+    # cdef np.ndarray[FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
     s[seed_node] = 1.0
     r[seed_node] = 1.0
 
@@ -200,7 +203,7 @@ def fast_approximate_regularized_commute(np.ndarray w_i,
     # Do one push anyway
     push_node = pushable.popleft()
 
-    s, r = regularized_limit_commute(s,
+    regularized_limit_commute(s,
                                      r,
                                      w_i[push_node],
                                      a_i[push_node],
@@ -219,7 +222,7 @@ def fast_approximate_regularized_commute(np.ndarray w_i,
         # If the threshold is not satisfied, perform a push operation
         # Both this and the later check are needed, since the pushable queue may contain duplicates.
         if r[push_node]/in_degree[push_node] >= epsilon:
-            s, r = regularized_limit_commute(s,
+            regularized_limit_commute(s,
                                              r,
                                              w_i[push_node],
                                              a_i[push_node],
@@ -233,7 +236,7 @@ def fast_approximate_regularized_commute(np.ndarray w_i,
                 pushable.extend(a_i[push_node][i])
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations

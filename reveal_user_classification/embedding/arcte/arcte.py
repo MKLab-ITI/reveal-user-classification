@@ -18,7 +18,7 @@ def arcte(adjacency_matrix, rho, epsilon):
 
     Outputs: - X in R^(nxC_n): The latent space embedding represented as a SciPy Sparse COOrdinate matrix.
     """
-    adjacency_matrix = adjacency_matrix.tocsr()
+    adjacency_matrix = sparse.csr_matrix(adjacency_matrix)
     number_of_nodes = adjacency_matrix.shape[0]
 
     # Calculate natural random walk transition probability matrix.
@@ -42,7 +42,6 @@ def arcte(adjacency_matrix, rho, epsilon):
 
     iterate_nodes = np.where(out_degree != 0)[0]
     for n in iterate_nodes:
-        # print(n)
         # Calculate similarity matrix slice.
         s, r, nop = fast_approximate_regularized_commute(base_transitions,
                                                          adjacent_nodes,
@@ -112,7 +111,7 @@ def arcte_and_centrality(adjacency_matrix, rho, epsilon):
     Outputs: - X in R^(nxC_n): The latent space embedding represented as a SciPy Sparse COOrdinate matrix.
              - centrality in R^(nx1): A vector containing the RCT measure of centrality.
     """
-    adjacency_matrix = adjacency_matrix.tocsr()
+    adjacency_matrix = sparse.csr_matrix(adjacency_matrix)
     number_of_nodes = adjacency_matrix.shape[0]
 
     # Calculate natural random walk transition probability matrix.

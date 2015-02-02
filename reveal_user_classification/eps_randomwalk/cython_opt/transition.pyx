@@ -26,7 +26,7 @@ def get_natural_random_walk_matrix(adjacency_matrix):
         rw_transition.data[rw_transition.indptr[i]: rw_transition.indptr[i + 1]] =\
             rw_transition.data[rw_transition.indptr[i]: rw_transition.indptr[i + 1]]/out_degree[i]
 
-    out_degree = np.array(out_degree).astype(np.int64).reshape(out_degree.size)
-    in_degree = np.array(in_degree).astype(np.int64).reshape(in_degree.size)
+    out_degree = np.array(out_degree).astype(np.float64).reshape(out_degree.size)
+    in_degree = np.array(in_degree).astype(np.float64).reshape(in_degree.size)
 
     return rw_transition, out_degree, in_degree

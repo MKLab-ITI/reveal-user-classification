@@ -39,8 +39,6 @@ def pagerank_limit_push(np.ndarray[FLOAT64_t, ndim=1] s,
     for i in range(out_degree):
         r[a_i[i]] += B_inf * w_i[i]
 
-    return s, r
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -76,8 +74,6 @@ def pagerank_lazy_push(np.ndarray[FLOAT64_t, ndim=1] s,
     for i in range(out_degree):
         r[a_i[i]] += B * w_i[i]
 
-    return s, r
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -103,5 +99,3 @@ def regularized_limit_commute(np.ndarray[FLOAT64_t, ndim=1] s, np.ndarray[FLOAT6
         commute_probability = B_inf * w_i[i]
         s[a_i[i]] += commute_probability
         r[a_i[i]] += commute_probability
-
-    return s, r

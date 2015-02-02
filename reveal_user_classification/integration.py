@@ -16,18 +16,24 @@ import reveal_user_annotation
 from reveal_user_annotation.common.config_package import get_threads_number, get_memory_path
 from reveal_user_annotation.mongo.mongo_util import start_local_mongo_daemon, establish_mongo_connection
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
-    extract_graphs_and_lemmas_from_tweets,  store_user_documents, read_user_documents_generator,\
+    extract_mention_graph_from_tweets,  store_user_documents, read_user_documents_generator,\
     extract_connected_components
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
+from reveal_user_annotation.pserver.pserver_util import get_configuration_details
 # from reveal_user_annotation.pserver.request import write_topics_to_pserver
 
 
 def user_network_profile_classifier(mongo_uri,
-                                    assessment_id,
+                                    tweet_input_database_name,
+                                    tweet_input_collection_name,
                                     latest_n,
                                     lower_timestamp,
-                                    upper_timestamp):
+                                    upper_timestamp,
+                                    number_of_users_to_annotate,
+                                    twitter_list_keyword_database_name,
+                                    user_topic_database_name,
+                                    local_resources_folder):
     """
     Performs Online Social Network user classification.
 
@@ -59,44 +65,48 @@ def user_network_profile_classifier(mongo_uri,
 
         time_spec["$lt"] = upper_datetime
         spec["time"] = time_spec
-        # spec = {'time': {'$gte': lower_datetime, '$lt': upper_datetime}}
-
-    # # Start a local mongo daemon.
-    # daemon = start_local_mongo_daemon()
-    # daemon.start()
 
     ####################################################################################################################
     # Establish MongoDB connection.
     ####################################################################################################################
     client = establish_mongo_connection(mongo_uri)
 
-    database_name, collection_name = translate_assessment_id(assessment_id)
-
     ####################################################################################################################
     # Preprocess tweets.
     ####################################################################################################################
-    mention_graph, retweet_graph, user_lemma_matrix, tweet_id_set, user_id_set, lemma_to_attribute =\
-        get_graphs_and_lemma_matrix(client,
-                                    database_name,
-                                    collection_name,
-                                    spec,
-                                    latest_n)
+    mention_graph, user_id_set, node_to_id = get_graphs_and_lemma_matrix(client,
+                                                                         tweet_input_database_name,
+                                                                         tweet_input_collection_name,
+                                                                         spec,
+                                                                         latest_n)
 
     adjacency_matrix, node_to_id, features, centrality = integrate_graphs(mention_graph,
-                                                                          retweet_graph,
-                                                                          user_lemma_matrix)
+                                                                          node_to_id)
 
     ####################################################################################################################
     # Annotate users.
     ####################################################################################################################
-    twitter_lists_gen, user_ids_to_annotate, user_twitter_ids_mongo, user_twitter_ids_local = fetch_twitter_lists(client, centrality, node_to_id)
+    twitter_lists_gen,\
+    user_ids_to_annotate,\
+    user_twitter_ids_mongo,\
+    user_twitter_ids_local = fetch_twitter_lists(client,
+                                                 twitter_list_keyword_database_name,
+                                                 local_resources_folder,
+                                                 centrality,
+                                                 number_of_users_to_annotate,
+                                                 node_to_id)
 
-    user_label_matrix, annotated_user_ids, label_to_lemma, lemma_to_keyword = annotate_users(client,
-                                                                                             twitter_lists_gen,
-                                                                                             user_ids_to_annotate,
-                                                                                             user_twitter_ids_mongo,
-                                                                                             user_twitter_ids_local,
-                                                                                             node_to_id)
+    user_label_matrix,\
+    annotated_user_ids,\
+    label_to_lemma,\
+    lemma_to_keyword = annotate_users(client,
+                                      twitter_lists_gen,
+                                      user_ids_to_annotate,
+                                      user_twitter_ids_mongo,
+                                      user_twitter_ids_local,
+                                      local_resources_folder,
+                                      twitter_list_keyword_database_name,
+                                      node_to_id)
 
     ####################################################################################################################
     # Perform user classification.
@@ -104,43 +114,30 @@ def user_network_profile_classifier(mongo_uri,
     prediction = user_classification(features, user_label_matrix, annotated_user_ids, node_to_id)
 
     ####################################################################################################################
-    # Write to PServer.
+    # Write to Mongo and/or PServer.
     ####################################################################################################################
+    # Get a python dictionary with necessary authentication credentials.
+    # pserver_configuration = get_configuration_details()
+
+    # Form a python generator of users and associated topic keywords.
     user_topic_gen = get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_keyword)
-    # write_topics_to_pserver(user_topic_gen)
 
-    # Stop the local mongo daemon.
-    # daemon.join()
-
-
-def translate_assessment_id(assessment_id):
-    """
-    The assessment id is translated to MongoDB host, port, database and collection names.
-
-    INTEGRATION NOTE: For testing purposes, I hard-code these configuration parameters to a local MongoDB setting.
-
-    Input:   - assessment_id: The connection details for making a connection with a MongoDB instance.
-
-    Outputs: - database_name: The name of the Mongo database in string format.
-             - collection_name: The name of the collection of tweets to read in string format.
-    """
-    database_name = "snow_tweets_database"
-    collection_name = "snow_tweets_collection"
-
-    return database_name, collection_name
+    # Write data to pserver.
+    write_results_to_mongo(client, user_topic_database_name, user_topic_gen)
+    # write_topics_to_pserver(pserver_configuration, user_topic_gen)
 
 
 def get_graphs_and_lemma_matrix(client,
-                                database_name,
-                                collection_name,
+                                tweet_input_database_name,
+                                tweet_input_collection_name,
                                 spec,
                                 latest_n):
     """
     Processes a set of tweets and extracts interaction graphs and a user-lemma vector representation matrix.
 
     Inputs:  - client: A MongoDB client.
-             - database_name: The name of a Mongo database.
-             - collection_name: The name of the collection of tweets.
+             - tweet_input_database_name: The name of a Mongo database.
+             - tweet_input_collection_name: The name of the collection of tweets.
              - spec: A python dictionary that defines higher query arguments.
              - latest_n: The number of latest results we require from the mongo document collection.
 
@@ -153,19 +150,18 @@ def get_graphs_and_lemma_matrix(client,
     """
     # Form the mention and retweet graphs, as well as the attribute matrix.
     tweet_gen = get_collection_documents_generator(client=client,
-                                                   database_name=database_name,
-                                                   collection_name=collection_name,
+                                                   database_name=tweet_input_database_name,
+                                                   collection_name=tweet_input_collection_name,
                                                    spec=spec,
                                                    latest_n=latest_n,
                                                    sort_key="created_at")
 
-    mention_graph, retweet_graph, user_lemma_matrix, tweet_id_set, user_id_set, lemma_to_attribute =\
-        extract_graphs_and_lemmas_from_tweets(tweet_gen)
+    mention_graph, user_id_set, node_to_id = extract_mention_graph_from_tweets(tweet_gen)
 
-    return mention_graph, retweet_graph, user_lemma_matrix, tweet_id_set, user_id_set, lemma_to_attribute
+    return mention_graph, user_id_set, node_to_id
 
 
-def integrate_graphs(mention_graph, retweet_graph, user_lemma_matrix):
+def integrate_graphs(mention_graph, node_to_id):
     """
     A bit of post-processing of the graphs to end up with a single aggregate graph.
 
@@ -179,11 +175,10 @@ def integrate_graphs(mention_graph, retweet_graph, user_lemma_matrix):
              - centrality: A vector containing centrality measure values.
     """
     # Form the adjacency matrix.
-    adjacency_matrix = 0.25*mention_graph + 0.25*mention_graph.transpose() +\
-                       0.25*retweet_graph + 0.25*retweet_graph.transpose()
+    adjacency_matrix = 0.25*mention_graph + 0.25*mention_graph.transpose()
 
     # Here is where I need to extract connected components or something similar.
-    adjacency_matrix, node_to_id = extract_connected_components(adjacency_matrix, "weak")
+    adjacency_matrix, node_to_id = extract_connected_components(adjacency_matrix, "weak", node_to_id)
 
     # Extract features
     features, centrality = arcte_and_centrality(adjacency_matrix=adjacency_matrix,
@@ -193,7 +188,7 @@ def integrate_graphs(mention_graph, retweet_graph, user_lemma_matrix):
     return adjacency_matrix, node_to_id, features, centrality
 
 
-def fetch_twitter_lists(client, centrality, node_to_id):
+def fetch_twitter_lists(client, twitter_list_keyword_database_name, local_resources_folder, centrality, number_of_users_to_annotate, node_to_id):
     """
     Decides which users to annotate and fetcher Twitter lists as needed.
 
@@ -205,13 +200,14 @@ def fetch_twitter_lists(client, centrality, node_to_id):
              - user_ids_to_annotate: A list of Twitter user ids.
     """
     user_twitter_ids_mongo, user_twitter_ids_local = find_already_annotated(client=client,
-                                                                            mongo_database_name="twitter_list_keywords_database")
+                                                                            mongo_database_name=twitter_list_keyword_database_name,
+                                                                            local_resources_folder=local_resources_folder)
 
     already_annotated_user_ids = (set(user_twitter_ids_mongo + user_twitter_ids_local))
 
     # Calculate the 100 most central users.
     user_ids_to_annotate = decide_which_users_to_annotate(centrality_vector=centrality,
-                                                          number_to_annotate=100,
+                                                          number_to_annotate=number_of_users_to_annotate,
                                                           already_annotated=already_annotated_user_ids,
                                                           node_to_id=node_to_id)
 
@@ -231,7 +227,7 @@ def fetch_twitter_lists(client, centrality, node_to_id):
     return twitter_lists_gen, user_ids_to_annotate, user_twitter_ids_mongo, user_twitter_ids_local
 
 
-def find_already_annotated(client, mongo_database_name):
+def find_already_annotated(client, mongo_database_name, local_resources_folder):
     """
     Finds the twitter ids of the users that have already been annotated.
 
@@ -249,8 +245,12 @@ def find_already_annotated(client, mongo_database_name):
     user_twitter_ids_mongo = [int(user_twitter_id) for user_twitter_id in collection_names]
 
     # Check locally for user annotation.
-    file_list = os.listdir("/data/LocalStorage/memory/SNOW/twitter_lists")
-    user_twitter_ids_local = [int(user_twitter_id[:5]) for user_twitter_id in file_list]
+    if local_resources_folder is not None:
+        file_list = os.listdir(local_resources_folder)
+        user_twitter_ids_local = [int(user_twitter_id[:-5]) for user_twitter_id in file_list]
+    else:
+        user_twitter_ids_local = list()
+    # user_twitter_ids_local = list()
 
     return user_twitter_ids_mongo, user_twitter_ids_local
 
@@ -259,6 +259,8 @@ def annotate_users(client, twitter_lists_gen,
                    user_ids_to_annotate,
                    user_twitter_ids_mongo,
                    user_twitter_ids_local,
+                   local_resources_folder,
+                   twitter_list_keyword_database_name,
                    node_to_id):
     """
     Forms a user-to-label matrix by annotating certain users.
@@ -278,15 +280,20 @@ def annotate_users(client, twitter_lists_gen,
 
     store_user_documents(user_twitter_list_keywords_gen,
                          client=client,
-                         mongo_database_name="twitter_list_keywords_database")
+                         mongo_database_name=twitter_list_keyword_database_name)
 
     # Read local resources as well.
-    local_user_twitter_list_keywords_gen = read_local_user_annotations(json_folder="/data/LocalStorage/memory/SNOW/twitter_lists",
+    # Calculate which user annotations to fetch.
+    user_twitter_ids_local = np.intersect1d(np.array(list(node_to_id.values())), np.array(user_twitter_ids_local))
+    local_user_twitter_list_keywords_gen = read_local_user_annotations(json_folder=local_resources_folder,
                                                                        user_twitter_ids=user_twitter_ids_local)
 
-    mongo_user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_annotate + user_twitter_ids_mongo,
+    # Calculate which user annotations to fetch.
+    user_ids_to_fetch = np.intersect1d(np.array(list(node_to_id.values())), np.array(user_twitter_ids_mongo))
+
+    mongo_user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_fetch,
                                                                          client=client,
-                                                                         mongo_database_name="twitter_list_keywords_database")
+                                                                         mongo_database_name=twitter_list_keyword_database_name)
 
     user_twitter_list_keywords_gen = itertools.chain(local_user_twitter_list_keywords_gen,
                                                      mongo_user_twitter_list_keywords_gen)
@@ -301,12 +308,15 @@ def annotate_users(client, twitter_lists_gen,
 
 def read_local_user_annotations(json_folder,
                                 user_twitter_ids):
-    for user_twitter_id in user_twitter_ids:
-        path = json_folder + "/" + str(user_twitter_id) + ".json"
-        with open(path, "r", encoding="utf-8") as f:
-            twitter_lists = json.load(f)
+    if json_folder is not None:
+        for user_twitter_id in user_twitter_ids:
+            path = json_folder + "/" + str(user_twitter_id) + ".json"
+            with open(path, "r", encoding="utf-8") as f:
+                twitter_lists = json.load(f)
 
-            yield user_twitter_id, twitter_lists
+                yield user_twitter_id, twitter_lists
+    else:
+        raise StopIteration
 
 
 def user_classification(features, user_label_matrix, annotated_user_ids, node_to_id):
@@ -320,20 +330,20 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
 
     Output:  - prediction: The output of the classification in scipy sparse matrix format.
     """
-    non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id)), annotated_user_ids)
+    # non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id)), annotated_user_ids)
 
     model = model_fit(features[annotated_user_ids, :],
                       user_label_matrix[annotated_user_ids, :],
                       svm_hardness=1.0,
                       fit_intercept=True,
                       number_of_threads=get_threads_number())
-    prediction = classify_users(features[non_annotated_user_ids, :],
+    prediction = classify_users(features,
                                 model)
+    prediction = spsp.csr_matrix(prediction)
+    prediction[annotated_user_ids, :] = user_label_matrix[annotated_user_ids, :]
+    prediction.eliminate_zeros()
 
-    user_labelling = user_label_matrix
-    user_labelling[non_annotated_user_ids, :] = prediction
-
-    return user_labelling
+    return prediction
 
 
 def get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_keyword):
@@ -355,6 +365,20 @@ def get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_ke
         twitter_user_id = node_to_id[node]
 
         labels = prediction.getrow(node).indices
-        topics = (lemma_to_keyword[label_to_lemma[label]] for label in labels)
+        if labels.size != 0:
+            topics = {lemma_to_keyword[label_to_lemma[label]]: 1.0 for label in labels}
 
-        yield (twitter_user_id, topics)
+            yield twitter_user_id, topics
+
+
+def write_results_to_mongo(client, user_topic_database_name, user_topic_gen):
+    """
+    What it says on the tin.
+
+    Inputs:  - client: A MongoDB client.
+             - user_topic_database_name:
+             - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
+    """
+    store_user_documents(user_topic_gen,
+                         client=client,
+                         mongo_database_name=user_topic_database_name)

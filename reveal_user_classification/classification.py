@@ -58,8 +58,8 @@ def classify_users(X_test, model):
     """
     prediction = model.decision_function(X_test)
 
-    prediction[prediction > 0] = 1.0
-    prediction[prediction <= 0] = 0.0
+    prediction[prediction > 0.0] = 1.0
+    prediction[prediction <= 0.0] = 0.0
     prediction = spsp.coo_matrix(prediction)
 
     return prediction

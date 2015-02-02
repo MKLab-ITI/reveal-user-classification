@@ -1,4 +1,8 @@
 include LICENCE
 include README.md
 
-recursive-include reveal_user_classification *.pyx *.c
+recursive-include reveal_user_classification.datautil *.pyx *.c
+recursive-include reveal_user_classification.embedding *.pyx *.c
+recursive-include reveal_user_classification.entry_points *.pyx *.c
+recursive-include reveal_user_classification.eps_randomwalk *.pyx *.c
+recursive-include reveal_user_classification.experiments *.pyx *.c

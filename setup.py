@@ -8,6 +8,7 @@ except ImportError:
     USE_CYTHON = False
 else:
     USE_CYTHON = True
+import numpy
 
 
 def readme():
@@ -22,40 +23,48 @@ ext_modules = list()
 if USE_CYTHON:
     ext_modules.append(Extension(name="reveal_user_classification.embedding.arcte.cython_opt.arcte",
                                  sources=["reveal_user_classification/embedding/arcte/cython_opt/arcte.pyx"],
-                                 extra_compile_args=['-O3', '-I/user/local/include/python3.3']))
+                                 extra_compile_args=['-O3', '-I/user/local/include/python3.3'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.push",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/push.pyx"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.transition",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/transition.pyx"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.similarity",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/similarity.pyx"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
     cmdclass.update({"build_ext": build_ext})
 else:
     ext_modules.append(Extension(name="reveal_user_classification.embedding.arcte.cython_opt.arcte",
                                  sources=["reveal_user_classification/embedding/arcte/cython_opt/arcte.c"],
-                                 extra_compile_args=['-O3', '-I/user/local/include/python3.3']))
+                                 extra_compile_args=['-O3', '-I/user/local/include/python3.3'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.push",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/push.c"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.transition",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/transition.c"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
     ext_modules.append(Extension(name="reveal_user_classification.eps_randomwalk.cython_opt.similarity",
                                  sources=["reveal_user_classification/eps_randomwalk/cython_opt/similarity.c"],
                                  extra_compile_args=['-O3', '-fopenmp', '-I/user/local/include/python3.3'],
-                                 extra_link_args=['-fopenmp']))
+                                 extra_link_args=['-fopenmp'],
+                                 include_dirs=[numpy.get_include()]))
 
 setup(
     name='reveal-user-classification',
-    version='0.1.1',
+    version='0.1.5',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',
@@ -95,9 +104,9 @@ setup(
     ],
     keywords="online-social-network user-classification Reveal-FP7",
     entry_points={
-        'console_scripts': ['user_network_profile_classifier=reveal_user_classification.entry_points.entry_point:main'],
+        'console_scripts': ['user_network_profile_classifier=reveal_user_classification.entry_points.user_network_profile_classifier:main'],
     },
-    include_package_data=False,
+    include_package_data=True,
     install_requires=[
         "numpy",
         "scipy",
