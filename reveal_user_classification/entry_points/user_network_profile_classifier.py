@@ -20,7 +20,6 @@ def translate_assessment_id(assessment_id):
 
     database_name = assessment_id[0]
     collection_name = assessment_id[1]
-    print(database_name, collection_name)
 
     return database_name, collection_name
 
@@ -46,6 +45,9 @@ def main():
     parser.add_argument("-uts", "--upper-timestamp", dest="upper_timestamp",
                         help="Get only documents created before this UNIX timestamp.",
                         type=float, required=False, default=None)
+    parser.add_argument("-rp", "--restart-probability", dest="restart_probability",
+                        help="Random walk restart probability.",
+                        type=float, required=False, default=0.4)
     parser.add_argument("-nua", "--number-of-users-to-annotate", dest="number_of_users_to_annotate",
                         help="We extract keywords from twitter lists for a certain number of central users.",
                         type=int, required=False, default=110)  # Approximately 1 per minute. Set multiples of 15.
@@ -72,6 +74,7 @@ def main():
     latest_n = args.latest_n
     lower_timestamp = args.lower_timestamp
     upper_timestamp = args.upper_timestamp
+    restart_probability = args.restart_probability
     number_of_users_to_annotate = args.number_of_users_to_annotate
     twitter_list_keyword_database_name = args.twitter_list_keyword_database_name
     user_topic_database_name = args.user_topic_database_name
@@ -85,6 +88,7 @@ def main():
                                                 latest_n=latest_n,
                                                 lower_timestamp=lower_timestamp,
                                                 upper_timestamp=upper_timestamp,
+                                                restart_probability=restart_probability,
                                                 number_of_users_to_annotate=number_of_users_to_annotate,
                                                 twitter_list_keyword_database_name=twitter_list_keyword_database_name,
                                                 user_topic_database_name=user_topic_database_name,

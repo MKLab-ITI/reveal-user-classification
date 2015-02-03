@@ -30,6 +30,7 @@ def user_network_profile_classifier(mongo_uri,
                                     latest_n,
                                     lower_timestamp,
                                     upper_timestamp,
+                                    restart_probability,
                                     number_of_users_to_annotate,
                                     twitter_list_keyword_database_name,
                                     user_topic_database_name,
@@ -82,7 +83,8 @@ def user_network_profile_classifier(mongo_uri,
                                                                          latest_n)
 
     adjacency_matrix, node_to_id, features, centrality = integrate_graphs(mention_graph,
-                                                                          node_to_id)
+                                                                          node_to_id,
+                                                                          restart_probability)
 
     ####################################################################################################################
     # Annotate users.
@@ -163,7 +165,7 @@ def get_graphs_and_lemma_matrix(client,
     return mention_graph, user_id_set, node_to_id
 
 
-def integrate_graphs(mention_graph, node_to_id):
+def integrate_graphs(mention_graph, node_to_id, restart_probability):
     """
     A bit of post-processing of the graphs to end up with a single aggregate graph.
 
@@ -184,7 +186,7 @@ def integrate_graphs(mention_graph, node_to_id):
 
     # Extract features
     features, centrality = arcte_and_centrality(adjacency_matrix=adjacency_matrix,
-                                                rho=0.4,
+                                                rho=restart_probability,
                                                 epsilon=0.0001)
 
     return adjacency_matrix, node_to_id, features, centrality
