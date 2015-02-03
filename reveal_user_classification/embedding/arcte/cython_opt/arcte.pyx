@@ -217,7 +217,10 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
     base_community_features = identity_matrix + adjacency_matrix
 
     # Stack horizontally matrices to form feature matrix
-    features = sparse.hstack([base_community_features, features]).tocoo()
+    try:
+        features = sparse.hstack([base_community_features, features]).tocoo()
+    except ValueError as e:
+       features = base_community_features
 
     features = normalize_community_features(features)
 

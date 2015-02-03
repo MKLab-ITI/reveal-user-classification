@@ -33,7 +33,8 @@ def user_network_profile_classifier(mongo_uri,
                                     number_of_users_to_annotate,
                                     twitter_list_keyword_database_name,
                                     user_topic_database_name,
-                                    local_resources_folder):
+                                    local_resources_folder,
+                                    max_number_of_labels):
     """
     Performs Online Social Network user classification.
 
@@ -106,7 +107,8 @@ def user_network_profile_classifier(mongo_uri,
                                       user_twitter_ids_local,
                                       local_resources_folder,
                                       twitter_list_keyword_database_name,
-                                      node_to_id)
+                                      node_to_id,
+                                      max_number_of_labels)
 
     ####################################################################################################################
     # Perform user classification.
@@ -261,7 +263,8 @@ def annotate_users(client, twitter_lists_gen,
                    user_twitter_ids_local,
                    local_resources_folder,
                    twitter_list_keyword_database_name,
-                   node_to_id):
+                   node_to_id,
+                   max_number_of_labels):
     """
     Forms a user-to-label matrix by annotating certain users.
 
@@ -301,7 +304,8 @@ def annotate_users(client, twitter_lists_gen,
     # Annotate users.
     id_to_node = dict(zip(node_to_id.values(), node_to_id.keys()))
     user_label_matrix, annotated_user_ids, label_to_lemma, lemma_to_keyword = form_user_label_matrix(user_twitter_list_keywords_gen,
-                                                                                                     id_to_node)
+                                                                                                     id_to_node,
+                                                                                                     max_number_of_labels)
 
     return user_label_matrix, annotated_user_ids, label_to_lemma, lemma_to_keyword
 

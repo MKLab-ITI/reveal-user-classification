@@ -16,8 +16,11 @@ def translate_assessment_id(assessment_id):
     Outputs: - database_name: The name of the Mongo database in string format.
              - collection_name: The name of the collection of tweets to read in string format.
     """
-    database_name = "snow_tweet_storage"
-    collection_name = "tweets"
+    assessment_id = assessment_id.split(".")
+
+    database_name = assessment_id[0]
+    collection_name = assessment_id[1]
+    print(database_name, collection_name)
 
     return database_name, collection_name
 
@@ -33,7 +36,7 @@ def main():
                         type=str, required=True)
     parser.add_argument("-id", "--assessment-id", dest="assessment_id",
                         help="This should translate uniquely to a mongo database-collection pair.",
-                        type=str, required=True)
+                        type=str, required=False, default="snow_tweet_storage.tweets")
     parser.add_argument("-ln", "--latest-n", dest="latest_n",
                         help="Get only the N most recent documents.",
                         type=int, required=False, default=100000)
@@ -55,6 +58,9 @@ def main():
     parser.add_argument("-lrf", "--local-resources-folder", dest="local_resources_folder",
                         help="We may have a certain number of twitter list data stored locally.",
                         type=str, required=False, default=None)
+    parser.add_argument("-mnl", "--max-number-of-labels", dest="max_number_of_labels",
+                        help="The maximum number of topics/labels.",
+                        type=int, required=False, default=200)
 
     args = parser.parse_args()
 
@@ -70,6 +76,7 @@ def main():
     twitter_list_keyword_database_name = args.twitter_list_keyword_database_name
     user_topic_database_name = args.user_topic_database_name
     local_resources_folder = args.local_resources_folder
+    max_number_of_labels = args.max_number_of_labels
 
 
     integration.user_network_profile_classifier(mongo_uri=mongo_uri,
@@ -81,4 +88,5 @@ def main():
                                                 number_of_users_to_annotate=number_of_users_to_annotate,
                                                 twitter_list_keyword_database_name=twitter_list_keyword_database_name,
                                                 user_topic_database_name=user_topic_database_name,
-                                                local_resources_folder=local_resources_folder)
+                                                local_resources_folder=local_resources_folder,
+                                                max_number_of_labels=max_number_of_labels)
