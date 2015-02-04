@@ -7,10 +7,11 @@ import numpy as np
 import scipy.sparse as spsp
 import datetime
 
-try:
-    from reveal_user_classification.embedding.arcte.cython_opt.arcte import arcte_and_centrality
-except ImportError:
-    from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
+# try:
+#     from reveal_user_classification.embedding.arcte.cython_opt.arcte import arcte_and_centrality
+# except ImportError:
+#     from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
+from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
 from reveal_user_classification.classification import model_fit, classify_users
 import reveal_user_annotation
 from reveal_user_annotation.common.config_package import get_threads_number, get_memory_path
