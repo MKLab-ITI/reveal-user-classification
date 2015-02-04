@@ -47,10 +47,10 @@ def main():
                         type=float, required=False, default=None)
     parser.add_argument("-rp", "--restart-probability", dest="restart_probability",
                         help="Random walk restart probability.",
-                        type=float, required=False, default=0.4)
+                        type=float, required=False, default=0.5)
     parser.add_argument("-nua", "--number-of-users-to-annotate", dest="number_of_users_to_annotate",
                         help="We extract keywords from twitter lists for a certain number of central users.",
-                        type=int, required=False, default=110)  # Approximately 1 per minute. Set multiples of 15.
+                        type=int, required=False, default=90)  # Approximately 1 per minute.
     parser.add_argument("-kwdbn", "--keyword-database-name", dest="twitter_list_keyword_database_name",
                         help="We store the extracted twitter list keywords on another mongo database in the same client.",
                         type=str, required=False, default="twitter_list_keywords_database")
@@ -62,7 +62,7 @@ def main():
                         type=str, required=False, default=None)
     parser.add_argument("-mnl", "--max-number-of-labels", dest="max_number_of_labels",
                         help="The maximum number of topics/labels.",
-                        type=int, required=False, default=200)
+                        type=int, required=False, default=500)
 
     args = parser.parse_args()
 
