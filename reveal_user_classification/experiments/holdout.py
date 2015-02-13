@@ -33,7 +33,8 @@ def get_folds_generator(node_label_matrix, labelled_node_indices, number_of_cate
             for trial in np.arange(30):
                 train, test = valid_train_test(node_label_matrix[labelled_node_indices, :],
                                                training_set_size,
-                                               number_of_categories)
+                                               number_of_categories,
+                                               trial)
                 train = labelled_node_indices[train]
                 test = labelled_node_indices[test]
 
@@ -92,7 +93,8 @@ def generate_folds(node_label_matrix, labelled_node_indices, number_of_categorie
     for trial in np.arange(30):
         train, test = valid_train_test(node_label_matrix[labelled_node_indices, :],
                                        training_set_size,
-                                       number_of_categories)
+                                       number_of_categories,
+                                       trial)
         train = labelled_node_indices[train]
         test = labelled_node_indices[test]
 
@@ -103,13 +105,14 @@ def generate_folds(node_label_matrix, labelled_node_indices, number_of_categorie
     return folds
 
 
-def valid_train_test(node_label_matrix, training_set_size, number_of_categories):
+def valid_train_test(node_label_matrix, training_set_size, number_of_categories, random_seed=0):
     """
     Partitions the labelled node set into training and testing set, making sure one category exists in both sets.
 
     Inputs:  - node_label_matrix: The node-label ground truth in a SciPy sparse matrix format.
              - training_set_size: The minimum required size for the training set.
              - number_of_categories: The number of categories/classes in the experiments.
+             - random_seed: A seed for numpy random.
 
     Outputs: - train_set: A NumPy array containing the training set node ids.
              - test_set: A NumPy array containing the testing set node ids.
@@ -119,6 +122,7 @@ def valid_train_test(node_label_matrix, training_set_size, number_of_categories)
     number_of_labelled_nodes = node_label_matrix.shape[0]
 
     # Randomize process
+    np.random.seed(random_seed)
     perm = rand.permutation(number_of_labelled_nodes)
     node_label_matrix = node_label_matrix[perm, :]
 

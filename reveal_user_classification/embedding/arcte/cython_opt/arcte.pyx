@@ -1,4 +1,5 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
+# cython: profile=True
 
 import numpy as np
 cimport numpy as np
@@ -50,27 +51,37 @@ def arcte(adjacency_matrix, double rho, double epsilon):
 
     cdef long number_of_local_communities = 0
 
+    cdef np.ndarray [FLOAT64_t, ndim=1] s = np.zeros(number_of_nodes, dtype=FLOAT64)
+    cdef np.ndarray [FLOAT64_t, ndim=1] r = np.zeros(number_of_nodes, dtype=FLOAT64)
+
     cdef np.ndarray[INT64_t, ndim=1] iterate_nodes = np.where(out_degree != 0)[0]
     cdef long seed_node
     for seed_node in iterate_nodes:
-        # print(seed_node)
+        print(seed_node)
+        s[:] = 0.0
+        r[:] = 0.0
+
         # Calculate similarity matrix slice
-        s, r, nop = fast_approximate_regularized_commute(base_transitions,
-                                                         adjacent_nodes,
-                                                         out_degree,
-                                                         in_degree,
-                                                         seed_node,
-                                                         rho,
-                                                         epsilon)
+        nop = fast_approximate_regularized_commute(s,
+                                                   r,
+                                                   base_transitions,
+                                                   adjacent_nodes,
+                                                   out_degree,
+                                                   in_degree,
+                                                   seed_node,
+                                                   rho,
+                                                   epsilon)
+
+        s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
 
         # Perform degree normalization of approximate similarity matrix slice
-        relevant_degrees = in_degree[s.indices]
-        s.data = np.divide(s.data, relevant_degrees)
+        relevant_degrees = in_degree[s_sparse.indices]
+        s_sparse.data = np.divide(s_sparse.data, relevant_degrees)
 
         # Sort the degree normalized approximate similarity matrix slice
-        sorted_indices = np.argsort(s.data, axis=0)
-        s.data = s.data[sorted_indices]
-        s.indices = s.indices[sorted_indices]
+        sorted_indices = np.argsort(s_sparse.data, axis=0)
+        s_sparse.data = s_sparse.data[sorted_indices]
+        s_sparse.indices = s_sparse.indices[sorted_indices]
 
         # Iterate over the support of the distribution to detect local community
         base_community = set(adjacent_nodes[seed_node])
@@ -79,8 +90,8 @@ def arcte(adjacency_matrix, double rho, double epsilon):
 
         base_community_count = 0
         most_unlikely_index = 0
-        for i in np.arange(1, s.data.size + 1):
-            if s.indices[-i] in base_community:
+        for i in np.arange(1, s_sparse.data.size + 1):
+            if s_sparse.indices[-i] in base_community:
                 base_community_count += 1
                 if base_community_count == base_community_size:
                     most_unlikely_index = i
@@ -88,7 +99,7 @@ def arcte(adjacency_matrix, double rho, double epsilon):
 
         # Save feature matrix coordinates
         if most_unlikely_index > base_community_count:
-            new_rows = s.indices[-1:-most_unlikely_index-1:-1]
+            new_rows = s_sparse.indices[-1:-most_unlikely_index-1:-1]
             extend_row(new_rows)
             extend_col(number_of_local_communities*np.ones_like(new_rows))
             number_of_local_communities += 1
@@ -155,19 +166,19 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
         # print(seed_node)
 
         for node in range(number_of_nodes):
-            s[node] = 0
-            r[node] = 0
+            s[node] = 0.0
+            r[node] = 0.0
 
         # Calculate similarity matrix slice
         nop = fast_approximate_regularized_commute(s,
                                                    r,
-                                                     base_transitions,
-                                                         adjacent_nodes,
-                                                         out_degree,
-                                                         in_degree,
-                                                         seed_node,
-                                                         rho,
-                                                         epsilon)
+                                                   base_transitions,
+                                                   adjacent_nodes,
+                                                   out_degree,
+                                                   in_degree,
+                                                   seed_node,
+                                                   rho,
+                                                   epsilon)
 
         s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
 
@@ -203,6 +214,8 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
             extend_row(new_rows)
             extend_col(number_of_local_communities*np.ones_like(new_rows))
             number_of_local_communities += 1
+
+        s_sparse = None
 
     centrality[np.setdiff1d(np.arange(number_of_nodes), iterate_nodes)] = 1.0
 

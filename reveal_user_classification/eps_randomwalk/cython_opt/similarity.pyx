@@ -1,4 +1,5 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
+# cython: profile=True
 
 from collections import deque
 import numpy as np

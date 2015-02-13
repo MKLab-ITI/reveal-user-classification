@@ -9,7 +9,9 @@ from reveal_user_classification.eps_randomwalk.push import pagerank_lazy_push
 from reveal_user_classification.eps_randomwalk.push import regularized_limit_commute
 
 
-def fast_approximate_personalized_pagerank(w_i,
+def fast_approximate_personalized_pagerank(s,
+                                           r,
+                                           w_i,
                                            a_i,
                                            out_degree,
                                            in_degree,
@@ -22,8 +24,8 @@ def fast_approximate_personalized_pagerank(w_i,
     number_of_nodes = a_i.size
 
     # Initialize approximate PageRank and residual distributions
-    s = np.zeros(number_of_nodes, dtype=np.float64)
-    r = np.zeros(number_of_nodes, dtype=np.float64)
+    # s = np.zeros(number_of_nodes, dtype=np.float64)
+    # r = np.zeros(number_of_nodes, dtype=np.float64)
     r[seed_node] = 1.0
 
     # Initialize queue of nodes to be pushed
@@ -62,13 +64,15 @@ def fast_approximate_personalized_pagerank(w_i,
                 pushable.extend(a_i[push_node][i])
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations
 
 
-def lazy_approximate_personalized_pagerank(w_i,
+def lazy_approximate_personalized_pagerank(s,
+                                           r,
+                                           w_i,
                                            a_i,
                                            out_degree,
                                            in_degree,
@@ -86,8 +90,8 @@ def lazy_approximate_personalized_pagerank(w_i,
     number_of_nodes = a_i.size
 
     # Initialize approximate PageRank and residual distributions
-    s = np.zeros(number_of_nodes, dtype=np.float64)
-    r = np.zeros(number_of_nodes, dtype=np.float64)
+    # s = np.zeros(number_of_nodes, dtype=np.float64)
+    # r = np.zeros(number_of_nodes, dtype=np.float64)
     r[seed_node] = 1.0
 
     # Initialize queue of nodes to be pushed
@@ -149,13 +153,15 @@ def lazy_approximate_personalized_pagerank(w_i,
             number_of_push_operations += 1
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations
 
 
-def fast_approximate_regularized_commute(w_i,
+def fast_approximate_regularized_commute(s,
+                                         r,
+                                         w_i,
                                          a_i,
                                          out_degree,
                                          in_degree,
@@ -180,8 +186,8 @@ def fast_approximate_regularized_commute(w_i,
     number_of_nodes = a_i.size
 
     # Initialize the similarity matrix slice and the residual distribution
-    s = np.zeros(number_of_nodes, dtype=np.float64)
-    r = np.zeros(number_of_nodes, dtype=np.float64)
+    # s = np.zeros(number_of_nodes, dtype=np.float64)
+    # r = np.zeros(number_of_nodes, dtype=np.float64)
     s[seed_node] = 1.0
     r[seed_node] = 1.0
 
@@ -225,7 +231,7 @@ def fast_approximate_regularized_commute(w_i,
                 pushable.extend(a_i[push_node][i])
 
     # Sparsify and return.
-    s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
-    r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
+    # s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
+    # r_sparse = sparse.csr_matrix(r, shape=(1, number_of_nodes))
 
-    return s_sparse, r_sparse, number_of_push_operations
+    return number_of_push_operations
