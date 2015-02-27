@@ -278,10 +278,15 @@ def laplacian_eigenmaps(adjacency_matrix, k):
     laplacian = get_normalized_laplacian(adjacency_matrix)
 
     # Calculate bottom k+1 eigenvalues and eigenvectors of normalized Laplacian.
-    eigenvalues, eigenvectors = spla.eigsh(laplacian,
-                                           k=k,
-                                           which='SM',
-                                           return_eigenvectors=True)
+    try:
+        eigenvalues, eigenvectors = spla.eigsh(laplacian,
+                                               k=k,
+                                               which='SM',
+                                               return_eigenvectors=True)
+    except spla.ArpackNoConvergence as e:
+        print("ARPACK has not converged.")
+        eigenvalue = e.eigenvalues
+        eigenvectors = e.eigenvectors
 
     # Discard the eigenvector corresponding to the zero-valued eigenvalue.
     eigenvectors = eigenvectors[:, 1:]
@@ -313,10 +318,15 @@ def replicator_eigenmaps(adjacency_matrix, k):
     replicator = eye_matrix - adjacency_matrix
 
     # Calculate bottom k+1 eigenvalues and eigenvectors of normalised Laplacian
-    eigenvalues, eigenvectors = spla.eigsh(replicator,
-                                           k=k+1,
-                                           which='SM',
-                                           return_eigenvectors=True)
+    try:
+        eigenvalues, eigenvectors = spla.eigsh(replicator,
+                                               k=k+1,
+                                               which='SM',
+                                               return_eigenvectors=True)
+    except spla.ArpackNoConvergence as e:
+        print("ARPACK has not converged.")
+        eigenvalue = e.eigenvalues
+        eigenvectors = e.eigenvectors
 
     eigenvectors = eigenvectors[:, 1:]
 
