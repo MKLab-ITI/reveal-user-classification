@@ -7,7 +7,7 @@ import numpy as np
 import scipy.sparse as sparse
 import scipy.sparse.linalg as spla
 
-from reveal_user_classification.embedding.common import normalize_community_features
+from reveal_user_classification.embedding.laplacian import get_normalized_laplacian
 
 
 def mroc(adjacency_matrix, alpha):
@@ -179,8 +179,6 @@ def mroc(adjacency_matrix, alpha):
         print('Iteration: ', iteration)
         print('List length', len(next_level_communities))
 
-    features = normalize_community_features(features)
-
     return features
 
 
@@ -260,8 +258,6 @@ def louvain(adjacency_matrix):
     louvain_features = sparse.coo_matrix((data, (row, col)), shape=(len(partition.keys()), community_counter),
                                          dtype=np.float64)
 
-    louvain_features = normalize_community_features(louvain_features)
-
     return louvain_features
 
 
@@ -273,32 +269,16 @@ def laplacian_eigenmaps(adjacency_matrix, k):
                    Laplacian eigenmaps for dimensionality reduction and data representation.
                    Neural computation, 15(6), 1373-1396.
 
-    Inputs:  - A in R^(nxn): Adjacency matrix of an undirected network represented as a SciPy Sparse COOrdinate matrix.
-             -            k: The number of eigenvectors to extract.
+    Inputs:  -   A in R^(nxn): Adjacency matrix of an network represented as a SciPy Sparse COOrdinate matrix.
+             -              k: The number of eigenvectors to extract.
 
     Outputs: - X in R^(nxk): The latent space embedding represented as a NumPy array. We discard the first eigenvector.
     """
-    # Assert validity of dimensionality input.
-    number_of_nodes = adjacency_matrix.shape[0]
-    if (k + 1) > number_of_nodes:
-        print('Latent space dimensionality must be smaller than the number of nodes minus one.')
-        raise RuntimeError
-
-    # Calculate diagonal matrix of node degrees.
-    degree = sparse.dia_matrix((adjacency_matrix.sum(axis=0), np.array([0])), shape=adjacency_matrix.shape)
-    degree = degree.tocsr()
-
     # Calculate sparse graph Laplacian.
-    adjacency_matrix = sparse.csr_matrix(-adjacency_matrix + degree, dtype=np.float64)
-
-    # Calculate inverse square root of diagonal matrix of node degrees.
-    degree.data = np.real(1/np.sqrt(degree.data))
-
-    # Calculate sparse normalized graph Laplacian.
-    normalized_laplacian = degree*adjacency_matrix*degree
+    laplacian = get_normalized_laplacian(adjacency_matrix)
 
     # Calculate bottom k+1 eigenvalues and eigenvectors of normalized Laplacian.
-    eigenvalues, eigenvectors = spla.eigsh(normalized_laplacian,
+    eigenvalues, eigenvectors = spla.eigsh(laplacian,
                                            k=k,
                                            which='SM',
                                            return_eigenvectors=True)
@@ -324,8 +304,5 @@ def base_communities(adjacency_matrix):
     adjacency_matrix = adjacency_matrix.transpose()
     features = sparse.csr_matrix(sparse.eye(number_of_nodes, number_of_nodes)) + adjacency_matrix.tocsr()
     features = features.tocsr()
-
-    # Perform tf-idf-like normalization.
-    features = normalize_community_features(features)
 
     return features

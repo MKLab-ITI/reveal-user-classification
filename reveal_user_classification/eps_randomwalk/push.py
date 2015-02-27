@@ -18,8 +18,6 @@ def pagerank_limit_push(s, r, w_i, a_i, push_node, rho):
     # Update residual vector at push node's adjacent nodes
     r[a_i] += B_inf * w_i
 
-    return s, r
-
 
 def pagerank_lazy_push(s, r, w_i, a_i, push_node, rho, lazy):
     """
@@ -40,8 +38,6 @@ def pagerank_lazy_push(s, r, w_i, a_i, push_node, rho, lazy):
 
     # Update residual vector at push node's adjacent nodes
     r[a_i] += B * w_i
-
-    return s, r
 
 
 def regularized_limit_commute(s, r, w_i, a_i, push_node, rho):
@@ -68,5 +64,3 @@ def regularized_limit_commute(s, r, w_i, a_i, push_node, rho):
     commute_probabilities = commute * w_i
     s[a_i] += commute_probabilities
     r[a_i] += commute_probabilities
-
-    return s, r
