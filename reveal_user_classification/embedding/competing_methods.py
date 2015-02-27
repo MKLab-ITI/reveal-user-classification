@@ -289,6 +289,40 @@ def laplacian_eigenmaps(adjacency_matrix, k):
     return eigenvectors
 
 
+def replicator_eigenmaps(adjacency_matrix, k):
+    """
+    Performs spectral graph embedding on the centrality reweighted adjacency matrix
+
+    Inputs:  - A in R^(nxn): Adjacency matrix of an undirected network represented as a scipy.sparse.coo_matrix
+             -            k: The number of social dimensions/eigenvectors to extract
+             -      max_iter: The maximum number of iterations for the iterative eigensolution method
+
+    Outputs: - S in R^(nxk): The social dimensions represented as a numpy.array matrix
+    """
+    number_of_nodes = adjacency_matrix.shape[0]
+
+    max_eigenvalue = spla.eigsh(adjacency_matrix,
+                                k=1,
+                                which='LM',
+                                return_eigenvectors=False)
+
+    # Calculate Replicator matrix
+    eye_matrix = sparse.eye(number_of_nodes, number_of_nodes, dtype=np.float64)
+    eye_matrix = eye_matrix.tocsr()
+    eye_matrix.data = eye_matrix.data*max_eigenvalue
+    replicator = eye_matrix - adjacency_matrix
+
+    # Calculate bottom k+1 eigenvalues and eigenvectors of normalised Laplacian
+    eigenvalues, eigenvectors = spla.eigsh(replicator,
+                                           k=k+1,
+                                           which='SM',
+                                           return_eigenvectors=True)
+
+    eigenvectors = eigenvectors[:, 1:]
+
+    return eigenvectors
+
+
 def base_communities(adjacency_matrix):
     """
     Forms the community indicator normalized feature matrix for any graph.
