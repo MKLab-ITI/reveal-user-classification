@@ -3,9 +3,10 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 import scipy.sparse as spsp
 from scipy.sparse import issparse
+import numpy as np
 
 
 def model_fit(X_train, y_train, svm_hardness, fit_intercept, number_of_threads, classifier_type="LinearSVC"):
@@ -27,22 +28,22 @@ def model_fit(X_train, y_train, svm_hardness, fit_intercept, number_of_threads, 
     Output:  - model: A trained scikit-learn One-vs-All multi-label scheme of linear SVC models.
     """
     if classifier_type == "LinearSVC":
-        model = OneVsRestClassifier(LinearSVC(C=svm_hardness, random_state=None, dual=False,
+        model = OneVsRestClassifier(LinearSVC(C=svm_hardness, random_state=0, dual=False,
                                               fit_intercept=fit_intercept),
                                     n_jobs=number_of_threads)
         model.fit(X_train, y_train)
     elif classifier_type == "LogisticRegression":
-        model = OneVsRestClassifier(LogisticRegression(C=svm_hardness, random_state=None, dual=False,
+        model = OneVsRestClassifier(LogisticRegression(C=svm_hardness, random_state=0, dual=False,
                                                        fit_intercept=fit_intercept),
                                     n_jobs=number_of_threads)
         model.fit(X_train, y_train)
     elif classifier_type == "RandomForest":
-        model = OneVsRestClassifier(RandomForestClassifier(n_estimators=1000,
-                                                           n_jobs=number_of_threads))
+        model = OneVsRestClassifier(RandomForestClassifier(n_estimators=1000, criterion="gini",
+                                       n_jobs=number_of_threads, random_state=0))
         if issparse(X_train):
-            model.fit(X_train.todense(), y_train.todense())
+            model.fit(X_train.tocsc(), y_train.toarray())
         else:
-            model.fit(X_train, y_train.todense())
+            model.fit(X_train, y_train.toarray())
     else:
         print("Invalid classifier type.")
         raise RuntimeError
@@ -67,8 +68,12 @@ def weigh_users(X_test, model, classifier_type="LinearSVC"):
     elif classifier_type == "LogisticRegression":
         decision_weights = model.decision_function(X_test)
     elif classifier_type == "RandomForest":
+        # if issparse(X_test):
+        #     decision_weights = np.hstack(a[:, 1].reshape(X_test.shape[0], 1) for a in model.predict_proba(X_test.tocsr()))
+        # else:
+        #     decision_weights = np.hstack(a[:, 1].reshape(X_test.shape[0], 1) for a in model.predict_proba(X_test))
         if issparse(X_test):
-            decision_weights = model.predict_proba(X_test.todense())
+            decision_weights = model.predict_proba(X_test.tocsr())
         else:
             decision_weights = model.predict_proba(X_test)
     else:

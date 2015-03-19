@@ -65,7 +65,7 @@ else:
 
 setup(
     name='reveal-user-classification',
-    version='0.1.10',
+    version='0.1.11',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',
@@ -77,6 +77,7 @@ setup(
               'reveal_user_classification.eps_randomwalk.benchmarks',
               'reveal_user_classification.eps_randomwalk.benchmarks.time_comparisons',
               'reveal_user_classification.eps_randomwalk.cython_opt',
+              'reveal_user_classification.quality',
               'reveal_user_classification.experiments',
               'reveal_user_classification.experiments.asu_experiments',
               'reveal_user_classification.entry_points'],
@@ -113,6 +114,7 @@ setup(
         "scipy",
         "scikit-learn",
         "Cython",
+        "h5py",
         "python-louvain",
         "reveal-user-annotation"
     ],

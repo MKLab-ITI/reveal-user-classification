@@ -1,11 +1,83 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
+import os
 import math
 import numpy as np
 import numpy.random as rand
 
+from reveal_user_annotation.common.datarw import get_file_row_generator
 
-def generate_folds(node_label_matrix, labelled_node_indices, number_of_categories, percentage):
+
+def get_folds_generator(node_label_matrix,
+                        labelled_node_indices,
+                        number_of_categories,
+                        dataset_memory_folder,
+                        percentage,
+                        number_of_folds=10):
+    """
+    Read or form and store the seed nodes for training and testing.
+
+    Inputs: - node_label_matrix: The node-label ground truth in a SciPy sparse matrix format.
+            - labelled_node_indices: A NumPy array containing the labelled node indices.
+            - number_of_categories: The number of categories/classes in the experiments.
+            - memory_path: The folder where the results are stored.
+            - percentage: The percentage of labelled samples that will be used for training.
+
+    Output: - folds: A generator containing train/test set folds.
+    """
+    number_of_labeled_nodes = labelled_node_indices.size
+    training_set_size = int(np.ceil(percentage*number_of_labeled_nodes/100))
+
+    ####################################################################################################################
+    # Read or generate folds
+    ####################################################################################################################
+    fold_file_path = dataset_memory_folder + "/folds/" + str(percentage) + "_folds.txt"
+    train_list = list()
+    test_list = list()
+    if not os.path.exists(fold_file_path):
+        with open(fold_file_path, "w") as fp:
+            for trial in np.arange(number_of_folds):
+                train, test = valid_train_test(node_label_matrix[labelled_node_indices, :],
+                                               training_set_size,
+                                               number_of_categories,
+                                               trial)
+                train = labelled_node_indices[train]
+                test = labelled_node_indices[test]
+
+                # Write test nodes
+                row = [str(node) for node in test]
+                row = "\t".join(row) + "\n"
+                fp.write(row)
+
+                # Write train nodes
+                row = [str(node) for node in train]
+                row = "\t".join(row) + "\n"
+                fp.write(row)
+
+                train_list.append(train)
+                test_list.append(test)
+    else:
+        file_row_gen = get_file_row_generator(fold_file_path, "\t")
+
+        for trial in np.arange(number_of_folds):
+            # Read test nodes
+            test = next(file_row_gen)
+            test = [int(node) for node in test]
+            test = np.array(test)
+
+            # Read train nodes
+            train = next(file_row_gen)
+            train = [int(node) for node in train]
+            train = np.array(train)
+
+            train_list.append(train)
+            test_list.append(test)
+
+    folds = ((train, test) for train, test in zip(train_list, test_list))
+    return folds
+
+
+def generate_folds(node_label_matrix, labelled_node_indices, number_of_categories, percentage, number_of_folds=10):
     """
     Form the seed nodes for training and testing.
 
@@ -24,7 +96,7 @@ def generate_folds(node_label_matrix, labelled_node_indices, number_of_categorie
     ####################################################################################################################
     train_list = list()
     test_list = list()
-    for trial in np.arange(30):
+    for trial in np.arange(number_of_folds):
         train, test = valid_train_test(node_label_matrix[labelled_node_indices, :],
                                        training_set_size,
                                        number_of_categories,

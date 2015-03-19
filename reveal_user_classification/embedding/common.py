@@ -2,7 +2,7 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import numpy as np
 from sklearn.kernel_approximation import AdditiveChi2Sampler
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize, scale, MinMaxScaler
 
 
 def normalize_community_features(features):
@@ -63,6 +63,12 @@ def normalize_columns(features):
                 features.data[features.indptr[j]: features.indptr[j + 1]]/np.sqrt(np.log(document_frequency))
 
     features = features.tocsr()
+
+    return features
+
+
+def scale_columns(features):
+    features = scale(features, with_mean=False)
 
     return features
 

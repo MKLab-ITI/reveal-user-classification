@@ -42,9 +42,9 @@ def mroc(adjacency_matrix, alpha):
     # Find base communities
     adjacency_matrix = adjacency_matrix.tocsc()
     number_of_base_communities = 0
-    for i in np.arange(number_of_nodes):
+    for i in range(number_of_nodes):
         # Calculate base community
-        base_community = set(adjacency_matrix.getcol(i).indices.flat)
+        base_community = set(adjacency_matrix.getcol(i).indices)
         base_community.add(i)
         flag = True
         for c in base_list:
@@ -78,7 +78,7 @@ def mroc(adjacency_matrix, alpha):
 
     reverse_index_rows = np.ndarray(number_of_nodes, dtype=np.ndarray)
     reverse_index_cols = np.ndarray(number_of_nodes, dtype=np.ndarray)
-    for n in np.arange(number_of_nodes):
+    for n in range(number_of_nodes):
         reverse_index_row = reverse_index_csr.getrow(n)
         reverse_index_rows[n] = reverse_index_row.indices
 
@@ -104,7 +104,7 @@ def mroc(adjacency_matrix, alpha):
         next_level_communities = list()
         append_next_level_community = next_level_communities.append
         number_of_communities = 0
-        for j in np.arange(reverse_index_csr.shape[1]):
+        for j in range(reverse_index_csr.shape[1]):
             if j in unavailable_communities:
                 continue
             must_break = reverse_index_csr.shape[1] - unavailable_communities_counter
@@ -164,7 +164,7 @@ def mroc(adjacency_matrix, alpha):
 
         reverse_index_rows = np.ndarray(number_of_nodes, dtype=np.ndarray)
         reverse_index_cols = np.ndarray(len(next_level_communities), dtype=np.ndarray)
-        for n in np.arange(number_of_nodes):
+        for n in range(number_of_nodes):
             reverse_index_row = reverse_index_csr.getrow(n)
             reverse_index_rows[n] = reverse_index_row.indices
 
@@ -243,7 +243,7 @@ def louvain(adjacency_matrix):
     append_col = col.append
 
     community_counter = 0
-    for i in np.arange(len(tree)):
+    for i in range(len(tree)):
         partition = community.partition_at_level(tree, i)
         for n, c in partition.items():
             append_row(n)
@@ -348,5 +348,6 @@ def base_communities(adjacency_matrix):
     adjacency_matrix = adjacency_matrix.transpose()
     features = sparse.csr_matrix(sparse.eye(number_of_nodes, number_of_nodes)) + adjacency_matrix.tocsr()
     features = features.tocsr()
+    features.data = np.ones_like(features.data)
 
     return features

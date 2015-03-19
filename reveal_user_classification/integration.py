@@ -13,9 +13,11 @@ import datetime
 #     from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
 from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
 from reveal_user_classification.classification import model_fit, classify_users
-import reveal_user_annotation
-from reveal_user_annotation.common.config_package import get_threads_number, get_memory_path
-from reveal_user_annotation.mongo.mongo_util import start_local_mongo_daemon, establish_mongo_connection
+from reveal_user_classification.embedding.common import normalize_community_features
+from reveal_user_classification.embedding.community_weighting import community_weighting
+from reveal_user_annotation.common.config_package import get_threads_number
+from reveal_user_annotation.mongo.mongo_util import establish_mongo_connection
+from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_connection, simple_notification
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
     extract_mention_graph_from_tweets,  store_user_documents, read_user_documents_generator,\
     extract_connected_components
@@ -26,12 +28,18 @@ from reveal_user_annotation.pserver.pserver_util import get_configuration_detail
 
 
 def user_network_profile_classifier(mongo_uri,
+                                    twitter_app_key,
+                                    twitter_app_secret,
+                                    rabbitmq_uri,
+                                    rabbitmq_queue,
+                                    rabbitmq_exchange,
                                     tweet_input_database_name,
                                     tweet_input_collection_name,
                                     latest_n,
                                     lower_timestamp,
                                     upper_timestamp,
                                     restart_probability,
+                                    number_of_threads,
                                     number_of_users_to_annotate,
                                     twitter_list_keyword_database_name,
                                     user_topic_database_name,
@@ -69,6 +77,9 @@ def user_network_profile_classifier(mongo_uri,
         time_spec["$lt"] = upper_datetime
         spec["time"] = time_spec
 
+    if number_of_threads is None:
+        number_of_threads = get_threads_number()
+
     ####################################################################################################################
     # Establish MongoDB connection.
     ####################################################################################################################
@@ -85,7 +96,8 @@ def user_network_profile_classifier(mongo_uri,
 
     adjacency_matrix, node_to_id, features, centrality = integrate_graphs(mention_graph,
                                                                           node_to_id,
-                                                                          restart_probability)
+                                                                          restart_probability,
+                                                                          number_of_threads)
 
     ####################################################################################################################
     # Annotate users.
@@ -94,6 +106,8 @@ def user_network_profile_classifier(mongo_uri,
     user_ids_to_annotate,\
     user_twitter_ids_mongo,\
     user_twitter_ids_local = fetch_twitter_lists(client,
+                                                 twitter_app_key,
+                                                 twitter_app_secret,
                                                  twitter_list_keyword_database_name,
                                                  local_resources_folder,
                                                  centrality,
@@ -116,7 +130,7 @@ def user_network_profile_classifier(mongo_uri,
     ####################################################################################################################
     # Perform user classification.
     ####################################################################################################################
-    prediction = user_classification(features, user_label_matrix, annotated_user_ids, node_to_id)
+    prediction = user_classification(features, user_label_matrix, annotated_user_ids, node_to_id, number_of_threads)
 
     ####################################################################################################################
     # Write to Mongo and/or PServer.
@@ -130,6 +144,11 @@ def user_network_profile_classifier(mongo_uri,
     # Write data to pserver.
     write_results_to_mongo(client, user_topic_database_name, user_topic_gen)
     # write_topics_to_pserver(pserver_configuration, user_topic_gen)
+
+    # Publish success message on RabbitMQ.
+    rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
+    simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, "SUCCESS")
+    rabbitmq_connection.close()
 
 
 def get_graphs_and_lemma_matrix(client,
@@ -166,13 +185,14 @@ def get_graphs_and_lemma_matrix(client,
     return mention_graph, user_id_set, node_to_id
 
 
-def integrate_graphs(mention_graph, node_to_id, restart_probability):
+def integrate_graphs(mention_graph, node_to_id, restart_probability, number_of_threads):
     """
     A bit of post-processing of the graphs to end up with a single aggregate graph.
 
     Inputs:  - mention_graph: The mention graph as a SciPy sparse matrix.
              - retweet_graph: The retweet graph as a SciPy sparse matrix.
              - user_lemma_matrix: The user lemma vector representation matrix as a SciPy sparse matrix.
+             - number_of_threads:
 
     Outputs: - adjacency_matrix: An aggregate, post-processed view of the graphs.
              - node_to_id: A node to Twitter id map as a python dictionary.
@@ -188,12 +208,20 @@ def integrate_graphs(mention_graph, node_to_id, restart_probability):
     # Extract features
     features, centrality = arcte_and_centrality(adjacency_matrix=adjacency_matrix,
                                                 rho=restart_probability,
-                                                epsilon=0.0001)
+                                                epsilon=0.0001,
+                                                number_of_threads=number_of_threads)
 
     return adjacency_matrix, node_to_id, features, centrality
 
 
-def fetch_twitter_lists(client, twitter_list_keyword_database_name, local_resources_folder, centrality, number_of_users_to_annotate, node_to_id):
+def fetch_twitter_lists(client,
+                        twitter_app_key,
+                        twitter_app_secret,
+                        twitter_list_keyword_database_name,
+                        local_resources_folder,
+                        centrality,
+                        number_of_users_to_annotate,
+                        node_to_id):
     """
     Decides which users to annotate and fetcher Twitter lists as needed.
 
@@ -217,7 +245,9 @@ def fetch_twitter_lists(client, twitter_list_keyword_database_name, local_resour
                                                           node_to_id=node_to_id)
 
     # Fetch Twitter lists.
-    twitter_lists_gen = fetch_twitter_lists_for_user_ids_generator(user_ids_to_annotate)
+    twitter_lists_gen = fetch_twitter_lists_for_user_ids_generator(twitter_app_key,
+                                                                   twitter_app_secret,
+                                                                   user_ids_to_annotate)
 
     # # Store Twitter lists in MongoDB.
     # store_user_documents(twitter_lists_gen,
@@ -326,7 +356,7 @@ def read_local_user_annotations(json_folder,
         raise StopIteration
 
 
-def user_classification(features, user_label_matrix, annotated_user_ids, node_to_id):
+def user_classification(features, user_label_matrix, annotated_user_ids, node_to_id, number_of_threads):
     """
     Perform user classification.
 
@@ -334,19 +364,30 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
              - user_label_matrix: A user-to-label matrix in scipy sparse matrix format.
              - annotated_user_ids: A list of Twitter user ids.
              - node_to_id: A node to Twitter id map as a python dictionary.
+             - number_of_threads:
 
     Output:  - prediction: The output of the classification in scipy sparse matrix format.
     """
-    # non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id)), annotated_user_ids)
+    non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id)), annotated_user_ids)
 
-    model = model_fit(features[annotated_user_ids, :],
-                      user_label_matrix[annotated_user_ids, :],
+    features = normalize_community_features(features)
+
+    X_train = features[annotated_user_ids, :]
+    X_test = features[non_annotated_user_ids, :]
+    y_train = user_label_matrix[annotated_user_ids, :]
+
+    X_train, X_test = community_weighting(X_train, X_test, y_train)
+
+    model = model_fit(X_train,
+                      y_train,
                       svm_hardness=1.0,
                       fit_intercept=True,
-                      number_of_threads=get_threads_number())
-    prediction = classify_users(features,
-                                model)
-    prediction = spsp.csr_matrix(prediction)
+                      number_of_threads=number_of_threads)
+    prediction = spsp.csr_matrix(user_label_matrix.shape, dtype=np.float64)
+    y_pred = classify_users(X_test,
+                            model)
+    y_pred = spsp.csr_matrix(y_pred)
+    prediction[non_annotated_user_ids, :] = y_pred
     prediction[annotated_user_ids, :] = user_label_matrix[annotated_user_ids, :]
     prediction.eliminate_zeros()
 

@@ -7,9 +7,7 @@ from reveal_user_classification import integration
 
 def translate_assessment_id(assessment_id):
     """
-    The assessment id is translated to MongoDB host, port, database and collection names.
-
-    INTEGRATION NOTE: For testing purposes, I hard-code these configuration parameters.
+    The assessment id is translated to MongoDB database and collection names.
 
     Input:   - assessment_id: The connection details for making a connection with a MongoDB instance.
 
@@ -34,8 +32,23 @@ def main():
                         help="A mongo client URI.",
                         type=str, required=True)
     parser.add_argument("-id", "--assessment-id", dest="assessment_id",
-                        help="This should translate uniquely to a mongo database-collection pair.",
+                        help="A mongo database-collection pair in the form: \"database_name.collection_name\".",
                         type=str, required=False, default="snow_tweet_storage.tweets")
+    parser.add_argument("-tak", "--twitter-app-key", dest="twitter_app_key",
+                        help="Twitter app key.",
+                        type=str, required=True,)
+    parser.add_argument("-tas", "--twitter-app-secret", dest="twitter_app_secret",
+                        help="Twitter app secret.",
+                        type=str, required=True)
+    parser.add_argument("-rmquri", "--rabbitmq-uri", dest="rabbitmq_uri",
+                        help="RabbitMQ connection URI.",
+                        type=str, required=True)
+    parser.add_argument("-rmqq", "--rabbitmq-queue", dest="rabbitmq_queue",
+                        help="RabbitMQ queue to check or create for publishing a success message.",
+                        type=str, required=True)
+    parser.add_argument("-rmqe", "--rabbitmq-exchange", dest="rabbitmq_exchange",
+                        help="RabbitMQ exchange name.",
+                        type=str, required=True)
     parser.add_argument("-ln", "--latest-n", dest="latest_n",
                         help="Get only the N most recent documents.",
                         type=int, required=False, default=100000)
@@ -48,6 +61,9 @@ def main():
     parser.add_argument("-rp", "--restart-probability", dest="restart_probability",
                         help="Random walk restart probability.",
                         type=float, required=False, default=0.5)
+    parser.add_argument("-nt", "--number-of-threads", dest="number_of_threads",
+                        help="The number of parallel threads for feature extraction and classification.",
+                        type=int, required=False, default=None)
     parser.add_argument("-nua", "--number-of-users-to-annotate", dest="number_of_users_to_annotate",
                         help="We extract keywords from twitter lists for a certain number of central users.",
                         type=int, required=False, default=90)  # Approximately 1 per minute.
@@ -69,12 +85,18 @@ def main():
     mongo_uri = args.mongo_uri
 
     assessment_id = args.assessment_id
+    twitter_app_key = args.twitter_app_key
+    twitter_app_secret = args.twitter_app_secret
+    rabbitmq_uri = args.rabbitmq_uri
+    rabbitmq_queue = args.rabbitmq_queue
+    rabbitmq_exchange = args.rabbitmq_exchange
     tweet_input_database_name, tweet_input_collection_name = translate_assessment_id(assessment_id)
 
     latest_n = args.latest_n
     lower_timestamp = args.lower_timestamp
     upper_timestamp = args.upper_timestamp
     restart_probability = args.restart_probability
+    number_of_threads = args.number_of_threads
     number_of_users_to_annotate = args.number_of_users_to_annotate
     twitter_list_keyword_database_name = args.twitter_list_keyword_database_name
     user_topic_database_name = args.user_topic_database_name
@@ -83,12 +105,18 @@ def main():
 
 
     integration.user_network_profile_classifier(mongo_uri=mongo_uri,
+                                                twitter_app_key=twitter_app_key,
+                                                twitter_app_secret=twitter_app_secret,
+                                                rabbitmq_uri=rabbitmq_uri,
+                                                rabbitmq_queue=rabbitmq_queue,
+                                                rabbitmq_exchange=rabbitmq_exchange,
                                                 tweet_input_database_name=tweet_input_database_name,
                                                 tweet_input_collection_name=tweet_input_collection_name,
                                                 latest_n=latest_n,
                                                 lower_timestamp=lower_timestamp,
                                                 upper_timestamp=upper_timestamp,
                                                 restart_probability=restart_probability,
+                                                number_of_threads=number_of_threads,
                                                 number_of_users_to_annotate=number_of_users_to_annotate,
                                                 twitter_list_keyword_database_name=twitter_list_keyword_database_name,
                                                 user_topic_database_name=user_topic_database_name,
