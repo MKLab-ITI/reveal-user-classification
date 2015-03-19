@@ -49,6 +49,9 @@ def main():
     parser.add_argument("-rmqe", "--rabbitmq-exchange", dest="rabbitmq_exchange",
                         help="RabbitMQ exchange name.",
                         type=str, required=True)
+    parser.add_argument("-rmqrk", "--rabbitmq-routing-key", dest="rabbitmq_routing_key",
+                        help="RabbitMQ routing key (e.g. \"amqp://guest:guest@localhost:5672/vhost\").",
+                        type=str, required=True)
     parser.add_argument("-ln", "--latest-n", dest="latest_n",
                         help="Get only the N most recent documents.",
                         type=int, required=False, default=100000)
@@ -90,6 +93,7 @@ def main():
     rabbitmq_uri = args.rabbitmq_uri
     rabbitmq_queue = args.rabbitmq_queue
     rabbitmq_exchange = args.rabbitmq_exchange
+    rabbitmq_routing_key = args.rabbitmq_routing_key
     tweet_input_database_name, tweet_input_collection_name = translate_assessment_id(assessment_id)
 
     latest_n = args.latest_n
@@ -110,6 +114,7 @@ def main():
                                                 rabbitmq_uri=rabbitmq_uri,
                                                 rabbitmq_queue=rabbitmq_queue,
                                                 rabbitmq_exchange=rabbitmq_exchange,
+                                                rabbitmq_routing_key=rabbitmq_routing_key,
                                                 tweet_input_database_name=tweet_input_database_name,
                                                 tweet_input_collection_name=tweet_input_collection_name,
                                                 latest_n=latest_n,

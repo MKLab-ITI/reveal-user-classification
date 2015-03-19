@@ -65,7 +65,7 @@ else:
 
 setup(
     name='reveal-user-classification',
-    version='0.1.11',
+    version='0.1.12',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',

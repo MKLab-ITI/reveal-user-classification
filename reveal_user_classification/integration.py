@@ -33,6 +33,7 @@ def user_network_profile_classifier(mongo_uri,
                                     rabbitmq_uri,
                                     rabbitmq_queue,
                                     rabbitmq_exchange,
+                                    rabbitmq_routing_key,
                                     tweet_input_database_name,
                                     tweet_input_collection_name,
                                     latest_n,
@@ -147,7 +148,7 @@ def user_network_profile_classifier(mongo_uri,
 
     # Publish success message on RabbitMQ.
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
-    simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, "SUCCESS")
+    simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
     rabbitmq_connection.close()
 
 
@@ -238,11 +239,13 @@ def fetch_twitter_lists(client,
 
     already_annotated_user_ids = (set(user_twitter_ids_mongo + user_twitter_ids_local))
 
-    # Calculate the 100 most central users.
+    # Calculate the most central users.
     user_ids_to_annotate = decide_which_users_to_annotate(centrality_vector=centrality,
                                                           number_to_annotate=number_of_users_to_annotate,
                                                           already_annotated=already_annotated_user_ids,
                                                           node_to_id=node_to_id)
+
+    print("Annotating users with Twitter ids: ", user_ids_to_annotate)
 
     # Fetch Twitter lists.
     twitter_lists_gen = fetch_twitter_lists_for_user_ids_generator(twitter_app_key,
