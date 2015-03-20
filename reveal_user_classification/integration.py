@@ -333,7 +333,7 @@ def annotate_users(client, twitter_lists_gen,
                                                                        user_twitter_ids=user_twitter_ids_local)
 
     # Calculate which user annotations to fetch.
-    user_ids_to_fetch = np.intersect1d(np.array(list(node_to_id.values())), np.array(user_twitter_ids_mongo))
+    user_ids_to_fetch = np.intersect1d(np.array(list(node_to_id.values()), dtype=int), np.array(user_twitter_ids_mongo, dtype=int))
 
     mongo_user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_fetch,
                                                                          client=client,
