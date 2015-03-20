@@ -70,12 +70,9 @@ def main():
     parser.add_argument("-nua", "--number-of-users-to-annotate", dest="number_of_users_to_annotate",
                         help="We extract keywords from twitter lists for a certain number of central users.",
                         type=int, required=False, default=90)  # Approximately 1 per minute.
-    parser.add_argument("-kwdbn", "--keyword-database-name", dest="twitter_list_keyword_database_name",
+    parser.add_argument("-unpcdb", "--user-network-profile-classifier-db", dest="user_network_profile_classifier_db",
                         help="We store the extracted twitter list keywords on another mongo database in the same client.",
-                        type=str, required=False, default="twitter_list_keywords_database")
-    parser.add_argument("-utdbn", "--user-topic-database-name", dest="user_topic_database_name",
-                        help="We store the extracted user topic keywords on another mongo database in the same client.",
-                        type=str, required=False, default="user_network_profile_classifier_user_topics")
+                        type=str, required=False, default="user_network_profile_classifier_db")
     parser.add_argument("-lrf", "--local-resources-folder", dest="local_resources_folder",
                         help="We may have a certain number of twitter list data stored locally.",
                         type=str, required=False, default=None)
@@ -102,8 +99,7 @@ def main():
     restart_probability = args.restart_probability
     number_of_threads = args.number_of_threads
     number_of_users_to_annotate = args.number_of_users_to_annotate
-    twitter_list_keyword_database_name = args.twitter_list_keyword_database_name
-    user_topic_database_name = args.user_topic_database_name
+    user_network_profile_classifier_db = args.user_network_profile_classifier_db
     local_resources_folder = args.local_resources_folder
     max_number_of_labels = args.max_number_of_labels
 
@@ -123,7 +119,6 @@ def main():
                                                 restart_probability=restart_probability,
                                                 number_of_threads=number_of_threads,
                                                 number_of_users_to_annotate=number_of_users_to_annotate,
-                                                twitter_list_keyword_database_name=twitter_list_keyword_database_name,
-                                                user_topic_database_name=user_topic_database_name,
+                                                user_network_profile_classifier_db=user_network_profile_classifier_db,
                                                 local_resources_folder=local_resources_folder,
                                                 max_number_of_labels=max_number_of_labels)

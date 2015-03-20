@@ -42,8 +42,7 @@ def user_network_profile_classifier(mongo_uri,
                                     restart_probability,
                                     number_of_threads,
                                     number_of_users_to_annotate,
-                                    twitter_list_keyword_database_name,
-                                    user_topic_database_name,
+                                    user_network_profile_classifier_db,
                                     local_resources_folder,
                                     max_number_of_labels):
     """
@@ -109,7 +108,7 @@ def user_network_profile_classifier(mongo_uri,
     user_twitter_ids_local = fetch_twitter_lists(client,
                                                  twitter_app_key,
                                                  twitter_app_secret,
-                                                 twitter_list_keyword_database_name,
+                                                 user_network_profile_classifier_db,
                                                  local_resources_folder,
                                                  centrality,
                                                  number_of_users_to_annotate,
@@ -124,7 +123,7 @@ def user_network_profile_classifier(mongo_uri,
                                       user_twitter_ids_mongo,
                                       user_twitter_ids_local,
                                       local_resources_folder,
-                                      twitter_list_keyword_database_name,
+                                      user_network_profile_classifier_db,
                                       node_to_id,
                                       max_number_of_labels)
 
@@ -143,7 +142,7 @@ def user_network_profile_classifier(mongo_uri,
     user_topic_gen = get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_keyword)
 
     # Write data to pserver.
-    write_results_to_mongo(client, user_topic_database_name, user_topic_gen)
+    write_results_to_mongo(client, user_network_profile_classifier_db, user_topic_gen)
     # write_topics_to_pserver(pserver_configuration, user_topic_gen)
 
     # Publish success message on RabbitMQ.
@@ -218,7 +217,7 @@ def integrate_graphs(mention_graph, node_to_id, restart_probability, number_of_t
 def fetch_twitter_lists(client,
                         twitter_app_key,
                         twitter_app_secret,
-                        twitter_list_keyword_database_name,
+                        user_network_profile_classifier_db,
                         local_resources_folder,
                         centrality,
                         number_of_users_to_annotate,
@@ -234,7 +233,7 @@ def fetch_twitter_lists(client,
              - user_ids_to_annotate: A list of Twitter user ids.
     """
     user_twitter_ids_mongo, user_twitter_ids_local = find_already_annotated(client=client,
-                                                                            mongo_database_name=twitter_list_keyword_database_name,
+                                                                            mongo_database_name=user_network_profile_classifier_db,
                                                                             local_resources_folder=local_resources_folder)
 
     already_annotated_user_ids = (set(user_twitter_ids_mongo + user_twitter_ids_local))
@@ -278,9 +277,14 @@ def find_already_annotated(client, mongo_database_name, local_resources_folder):
     """
     # Check the mongo database for user annotation.
     db = client[mongo_database_name]
-    collection_names = db.collection_names(include_system_collections=False)
+    collection = db["twitter_list_keyword_collection"]
 
-    user_twitter_ids_mongo = [int(user_twitter_id) for user_twitter_id in collection_names]
+    cursor = collection.find()
+
+    user_twitter_ids_mongo = list()
+    append_user_twitter_user_id = user_twitter_ids_mongo.append
+    for document in cursor:
+        append_user_twitter_user_id(document["_id"])
 
     # Check locally for user annotation.
     if local_resources_folder is not None:
@@ -298,7 +302,7 @@ def annotate_users(client, twitter_lists_gen,
                    user_twitter_ids_mongo,
                    user_twitter_ids_local,
                    local_resources_folder,
-                   twitter_list_keyword_database_name,
+                   user_network_profile_classifier_db,
                    node_to_id,
                    max_number_of_labels):
     """
@@ -319,7 +323,8 @@ def annotate_users(client, twitter_lists_gen,
 
     store_user_documents(user_twitter_list_keywords_gen,
                          client=client,
-                         mongo_database_name=twitter_list_keyword_database_name)
+                         mongo_database_name=user_network_profile_classifier_db,
+                         mongo_collection_name="twitter_list_keywords_collection")
 
     # Read local resources as well.
     # Calculate which user annotations to fetch.
@@ -332,7 +337,8 @@ def annotate_users(client, twitter_lists_gen,
 
     mongo_user_twitter_list_keywords_gen = read_user_documents_generator(user_ids_to_fetch,
                                                                          client=client,
-                                                                         mongo_database_name=twitter_list_keyword_database_name)
+                                                                         mongo_database_name=user_network_profile_classifier_db,
+                                                                         mongo_collection_name="twitter_list_keywords_collection")
 
     user_twitter_list_keywords_gen = itertools.chain(local_user_twitter_list_keywords_gen,
                                                      mongo_user_twitter_list_keywords_gen)
@@ -417,19 +423,21 @@ def get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_ke
 
         labels = prediction.getrow(node).indices
         if labels.size != 0:
-            topics = {lemma_to_keyword[label_to_lemma[label]]: 1.0 for label in labels}
+            topics = dict()
+            topics["topic_to_score"] = {lemma_to_keyword[label_to_lemma[label]]: 1.0 for label in labels}
 
             yield twitter_user_id, topics
 
 
-def write_results_to_mongo(client, user_topic_database_name, user_topic_gen):
+def write_results_to_mongo(client, user_network_profile_classifier_db, user_topic_gen):
     """
     What it says on the tin.
 
     Inputs:  - client: A MongoDB client.
-             - user_topic_database_name:
+             - user_network_profile_classifier_db:
              - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
     """
     store_user_documents(user_topic_gen,
                          client=client,
-                         mongo_database_name=user_topic_database_name)
+                         mongo_database_name=user_network_profile_classifier_db,
+                         mongo_collection_name="user_topics_collection")
