@@ -13,8 +13,8 @@ import datetime
 #     from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
 from reveal_user_classification.embedding.arcte.arcte import arcte_and_centrality
 from reveal_user_classification.classification import model_fit, classify_users
-from reveal_user_classification.embedding.common import normalize_community_features
-from reveal_user_classification.embedding.community_weighting import community_weighting
+from reveal_user_classification.embedding.common import normalize_columns
+from reveal_user_classification.embedding.community_weighting import chi2_psnr_community_weighting
 from reveal_user_annotation.common.config_package import get_threads_number
 from reveal_user_annotation.mongo.mongo_util import establish_mongo_connection
 from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_connection, simple_notification
@@ -277,7 +277,7 @@ def find_already_annotated(client, mongo_database_name, local_resources_folder):
     """
     # Check the mongo database for user annotation.
     db = client[mongo_database_name]
-    collection = db["twitter_list_keyword_collection"]
+    collection = db["twitter_list_keywords_collection"]
 
     cursor = collection.find()
 
@@ -328,7 +328,7 @@ def annotate_users(client, twitter_lists_gen,
 
     # Read local resources as well.
     # Calculate which user annotations to fetch.
-    user_twitter_ids_local = np.intersect1d(np.array(list(node_to_id.values())), np.array(user_twitter_ids_local))
+    user_twitter_ids_local = np.intersect1d(np.array(list(node_to_id.values()), dtype=int), np.array(user_twitter_ids_local, dtype=int))
     local_user_twitter_list_keywords_gen = read_local_user_annotations(json_folder=local_resources_folder,
                                                                        user_twitter_ids=user_twitter_ids_local)
 
@@ -377,15 +377,15 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
 
     Output:  - prediction: The output of the classification in scipy sparse matrix format.
     """
-    non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id)), annotated_user_ids)
+    non_annotated_user_ids = np.setdiff1d(np.arange(len(node_to_id), dtype=int), annotated_user_ids)
 
-    features = normalize_community_features(features)
+    features = normalize_columns(features)
 
     X_train = features[annotated_user_ids, :]
     X_test = features[non_annotated_user_ids, :]
     y_train = user_label_matrix[annotated_user_ids, :]
 
-    X_train, X_test = community_weighting(X_train, X_test, y_train)
+    X_train, X_test = chi2_psnr_community_weighting(X_train, X_test, y_train)
 
     model = model_fit(X_train,
                       y_train,
