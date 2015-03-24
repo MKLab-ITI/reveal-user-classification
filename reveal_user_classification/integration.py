@@ -17,7 +17,8 @@ from reveal_user_classification.embedding.common import normalize_columns
 from reveal_user_classification.embedding.community_weighting import chi2_psnr_community_weighting
 from reveal_user_annotation.common.config_package import get_threads_number
 from reveal_user_annotation.mongo.mongo_util import establish_mongo_connection
-from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_connection, simple_notification
+from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_connection, simple_notification,\
+    rabbitmq_server_service
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
     extract_mention_graph_from_tweets,  store_user_documents, read_user_documents_generator,\
     extract_connected_components
@@ -146,6 +147,7 @@ def user_network_profile_classifier(mongo_uri,
     # write_topics_to_pserver(pserver_configuration, user_topic_gen)
 
     # Publish success message on RabbitMQ.
+    rabbitmq_server_service("restart")
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
     rabbitmq_connection.close()
