@@ -5,7 +5,7 @@ import numpy as np
 
 from reveal_user_classification.eps_randomwalk.push import pagerank_limit_push
 from reveal_user_classification.eps_randomwalk.push import pagerank_lazy_push
-from reveal_user_classification.eps_randomwalk.push import regularized_limit_commute
+from reveal_user_classification.eps_randomwalk.push import cumulative_pagerank_difference_limit_push
 
 
 def fast_approximate_personalized_pagerank(s,
@@ -146,17 +146,17 @@ def lazy_approximate_personalized_pagerank(s,
     return number_of_push_operations
 
 
-def fast_approximate_regularized_commute(s,
-                                         r,
-                                         w_i,
-                                         a_i,
-                                         out_degree,
-                                         in_degree,
-                                         seed_node,
-                                         rho=0.2,
-                                         epsilon=0.00001):
+def fast_approximate_cumulative_pagerank_difference(s,
+                                                    r,
+                                                    w_i,
+                                                    a_i,
+                                                    out_degree,
+                                                    in_degree,
+                                                    seed_node,
+                                                    rho=0.2,
+                                                    epsilon=0.00001):
     """
-    Calculates the absorbing random walk cumulative probability starting from a seed node without self-loops.
+    Calculates cumulative PageRank difference probability starting from a seed node without self-loops.
 
     Inputs:  - w_i: A NumPy array of arrays of probability transition weights from the seed nodes to its adjacent nodes.
              - a_i: A NumPy array of arrays of the nodes adjacent to the seed node.
@@ -183,12 +183,12 @@ def fast_approximate_regularized_commute(s,
     # Do one push for free
     push_node = pushable.popleft()
 
-    regularized_limit_commute(s,
-                              r,
-                              w_i[push_node],
-                              a_i[push_node],
-                              push_node,
-                              rho)
+    cumulative_pagerank_difference_limit_push(s,
+                                              r,
+                                              w_i[push_node],
+                                              a_i[push_node],
+                                              push_node,
+                                              rho)
     number_of_push_operations = 1
 
     i = np.where(np.divide(r[a_i[push_node]], in_degree[a_i[push_node]]) >= epsilon)[0]
@@ -202,12 +202,12 @@ def fast_approximate_regularized_commute(s,
         # If the threshold is not satisfied, perform a push operation
         # Both this and the later check are needed, since the pushable queue may contain duplicates.
         if r[push_node]/in_degree[push_node] >= epsilon:
-            regularized_limit_commute(s,
-                                      r,
-                                      w_i[push_node],
-                                      a_i[push_node],
-                                      push_node,
-                                      rho)
+            cumulative_pagerank_difference_limit_push(s,
+                                                      r,
+                                                      w_i[push_node],
+                                                      a_i[push_node],
+                                                      push_node,
+                                                      rho)
             number_of_push_operations += 1
 
             # Update pushable double-ended queue

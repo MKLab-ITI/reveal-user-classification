@@ -40,9 +40,9 @@ def pagerank_lazy_push(s, r, w_i, a_i, push_node, rho, lazy):
     r[a_i] += B * w_i
 
 
-def regularized_limit_commute(s, r, w_i, a_i, push_node, rho):
+def cumulative_pagerank_difference_limit_push(s, r, w_i, a_i, push_node, rho):
     """
-    Performs a random commute step without a self-loop.
+    Performs a random step without a self-loop.
 
     Inputs:  - s: A NumPy array that contains the approximate absorbing random walk cumulative probabilities.
              - r: A NumPy array that contains the residual probability distribution.

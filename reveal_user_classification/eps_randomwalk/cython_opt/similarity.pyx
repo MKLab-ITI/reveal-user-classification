@@ -165,17 +165,17 @@ def lazy_approximate_personalized_pagerank(np.ndarray[FLOAT64_t, ndim=1] s,
     return number_of_push_operations
 
 
-def fast_approximate_regularized_commute(np.ndarray[FLOAT64_t, ndim=1] s,
-                                         np.ndarray[FLOAT64_t, ndim=1] r,
-                                         np.ndarray w_i,
-                                         np.ndarray a_i,
-                                         np.ndarray[FLOAT64_t, ndim=1] out_degree,
-                                         np.ndarray[FLOAT64_t, ndim=1] in_degree,
-                                         long seed_node,
-                                         double rho,
-                                         double epsilon):
+def fast_approximate_cumulative_pagerank_difference(np.ndarray[FLOAT64_t, ndim=1] s,
+                                                    np.ndarray[FLOAT64_t, ndim=1] r,
+                                                    np.ndarray w_i,
+                                                    np.ndarray a_i,
+                                                    np.ndarray[FLOAT64_t, ndim=1] out_degree,
+                                                    np.ndarray[FLOAT64_t, ndim=1] in_degree,
+                                                    long seed_node,
+                                                    double rho,
+                                                    double epsilon):
     """
-    Calculates the absorbing random walk cumulative probability starting from a seed node without self-loops.
+    Calculates cumulative PageRank difference probability starting from a seed node without self-loops.
 
     Inputs:  - w_i: A NumPy array of arrays of probability transition weights from the seed nodes to its adjacent nodes.
              - a_i: A NumPy array of arrays of the nodes adjacent to the seed node.
@@ -204,12 +204,12 @@ def fast_approximate_regularized_commute(np.ndarray[FLOAT64_t, ndim=1] s,
     # Do one push anyway
     push_node = pushable.popleft()
 
-    regularized_limit_commute(s,
-                                     r,
-                                     w_i[push_node],
-                                     a_i[push_node],
-                                     push_node,
-                                     rho)
+    cumulative_pagerank_difference_limit_push(s,
+                                              r,
+                                              w_i[push_node],
+                                              a_i[push_node],
+                                              push_node,
+                                              rho)
     cdef long number_of_push_operations = 1
 
     i = np.where(np.divide(r[a_i[push_node]], in_degree[a_i[push_node]]) >= epsilon)[0]
@@ -223,12 +223,12 @@ def fast_approximate_regularized_commute(np.ndarray[FLOAT64_t, ndim=1] s,
         # If the threshold is not satisfied, perform a push operation
         # Both this and the later check are needed, since the pushable queue may contain duplicates.
         if r[push_node]/in_degree[push_node] >= epsilon:
-            regularized_limit_commute(s,
-                                             r,
-                                             w_i[push_node],
-                                             a_i[push_node],
-                                             push_node,
-                                             rho)
+            cumulative_pagerank_difference_limit_push(s,
+                                                      r,
+                                                      w_i[push_node],
+                                                      a_i[push_node],
+                                                      push_node,
+                                                      rho)
             number_of_push_operations += 1
 
             # Update pushable double-ended queue

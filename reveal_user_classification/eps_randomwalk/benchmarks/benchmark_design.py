@@ -129,7 +129,7 @@ def cython_optimization_benchmark(adjacency_matrix, alpha, epsilon):
 
         # Perform unoptimized absorbing cumulative random walk probability.
         start_time = time.process_time()
-        s, r, nop = similarity.fast_approximate_regularized_commute(base_transitions,
+        s, r, nop = similarity.fast_approximate_cumulative_pagerank_difference(base_transitions,
                                                                     adjacent_nodes,
                                                                     out_degree,
                                                                     in_degree,

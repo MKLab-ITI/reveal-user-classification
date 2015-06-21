@@ -7,7 +7,7 @@ cimport cython
 import scipy.sparse as sparse
 
 from reveal_user_classification.eps_randomwalk.cython_opt.transition import get_natural_random_walk_matrix
-from reveal_user_classification.eps_randomwalk.cython_opt.similarity import fast_approximate_regularized_commute
+from reveal_user_classification.eps_randomwalk.cython_opt.similarity import fast_approximate_cumulative_pagerank_difference
 from reveal_user_classification.embedding.common import normalize_community_features
 
 FLOAT64 = np.float64
@@ -62,15 +62,15 @@ def arcte(adjacency_matrix, double rho, double epsilon):
         r[:] = 0.0
 
         # Calculate similarity matrix slice
-        nop = fast_approximate_regularized_commute(s,
-                                                   r,
-                                                   base_transitions,
-                                                   adjacent_nodes,
-                                                   out_degree,
-                                                   in_degree,
-                                                   seed_node,
-                                                   rho,
-                                                   epsilon)
+        nop = fast_approximate_cumulative_pagerank_difference(s,
+                                                              r,
+                                                              base_transitions,
+                                                              adjacent_nodes,
+                                                              out_degree,
+                                                              in_degree,
+                                                              seed_node,
+                                                              rho,
+                                                              epsilon)
 
         s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
 
@@ -121,6 +121,7 @@ def arcte(adjacency_matrix, double rho, double epsilon):
 
     return features
 
+
 def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
     """
     Extracts local community features for all graph nodes based on the partitioning of node-centric similarity vectors.
@@ -170,15 +171,15 @@ def arcte_and_centrality(adjacency_matrix, double rho, double epsilon):
             r[node] = 0.0
 
         # Calculate similarity matrix slice
-        nop = fast_approximate_regularized_commute(s,
-                                                   r,
-                                                   base_transitions,
-                                                   adjacent_nodes,
-                                                   out_degree,
-                                                   in_degree,
-                                                   seed_node,
-                                                   rho,
-                                                   epsilon)
+        nop = fast_approximate_cumulative_pagerank_difference(s,
+                                                              r,
+                                                              base_transitions,
+                                                              adjacent_nodes,
+                                                              out_degree,
+                                                              in_degree,
+                                                              seed_node,
+                                                              rho,
+                                                              epsilon)
 
         s_sparse = sparse.csr_matrix(s, shape=(1, number_of_nodes))
 

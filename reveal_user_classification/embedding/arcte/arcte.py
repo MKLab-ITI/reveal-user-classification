@@ -7,7 +7,7 @@ import itertools
 from functools import partial
 
 from reveal_user_classification.eps_randomwalk.transition import get_natural_random_walk_matrix
-from reveal_user_classification.eps_randomwalk.similarity import fast_approximate_regularized_commute
+from reveal_user_classification.eps_randomwalk.similarity import fast_approximate_cumulative_pagerank_difference
 from reveal_user_annotation.common.config_package import get_threads_number
 
 
@@ -65,18 +65,15 @@ def arcte_worker(iterate_nodes,
         r[:] = 0.0
 
         epsilon_eff = epsilon
-        # epsilon_eff = (0.0001*np.log(6))/(np.log(1 + np.squeeze(rho*np.sum(out_degree[adjacent_nodes[n]]) + (1-rho)*out_degree[n])))
-        # epsilon_eff = (0.0001*np.log(1 + mean_degree))/(np.log(1 + out_degree[n]))
-        # epsilon_eff = (0.00001/5.0)*(rho*np.sum(out_degree[adjacent_nodes[n]]) + (1-rho)*out_degree[n])
-        nop = fast_approximate_regularized_commute(s,
-                                                   r,
-                                                   base_transitions[:],
-                                                   adjacent_nodes[:],
-                                                   out_degree,
-                                                   in_degree,
-                                                   n,
-                                                   rho,
-                                                   epsilon_eff)
+        nop = fast_approximate_cumulative_pagerank_difference(s,
+                                                              r,
+                                                              base_transitions[:],
+                                                              adjacent_nodes[:],
+                                                              out_degree,
+                                                              in_degree,
+                                                              n,
+                                                              rho,
+                                                              epsilon_eff)
 
         s_sparse = sparse.csr_matrix(s)
 
@@ -237,15 +234,15 @@ def arcte_and_centrality_worker(iterate_nodes,
         # epsilon_eff = (0.0001*np.log(6))/(np.log(1 + np.squeeze(rho*np.sum(out_degree[adjacent_nodes[n]]) + (1-rho)*out_degree[n])))
         # epsilon_eff = (0.0001*np.log(1 + mean_degree))/(np.log(1 + out_degree[n]))
         # epsilon_eff = (0.00001/5.0)*(rho*np.sum(out_degree[adjacent_nodes[n]]) + (1-rho)*out_degree[n])
-        nop = fast_approximate_regularized_commute(s,
-                                                   r,
-                                                   base_transitions[:],
-                                                   adjacent_nodes[:],
-                                                   out_degree,
-                                                   in_degree,
-                                                   n,
-                                                   rho,
-                                                   epsilon_eff)
+        nop = fast_approximate_cumulative_pagerank_difference(s,
+                                                              r,
+                                                              base_transitions[:],
+                                                              adjacent_nodes[:],
+                                                              out_degree,
+                                                              in_degree,
+                                                              n,
+                                                              rho,
+                                                              epsilon_eff)
 
         s_sparse = sparse.csr_matrix(s)
 

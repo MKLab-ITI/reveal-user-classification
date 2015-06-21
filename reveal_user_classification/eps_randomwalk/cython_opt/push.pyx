@@ -80,9 +80,9 @@ def pagerank_lazy_push(np.ndarray[FLOAT64_t, ndim=1] s,
 @cython.wraparound(False)
 @cython.nonecheck(False)
 @cython.cdivision(True)
-def regularized_limit_commute(np.ndarray[FLOAT64_t, ndim=1] s, np.ndarray[FLOAT64_t, ndim=1] r, np.ndarray[FLOAT64_t, ndim=1] w_i, np.ndarray[INT64_t, ndim=1] a_i, long push_node, double rho):
+def cumulative_pagerank_difference_limit_push(np.ndarray[FLOAT64_t, ndim=1] s, np.ndarray[FLOAT64_t, ndim=1] r, np.ndarray[FLOAT64_t, ndim=1] w_i, np.ndarray[INT64_t, ndim=1] a_i, long push_node, double rho):
     """
-    Performs a random commute step without a self-loop.
+    Performs a random step without a self-loop.
     """
     # Calculate the B quantity to infinity
     cdef double B_inf = (1-rho)*r[push_node]
