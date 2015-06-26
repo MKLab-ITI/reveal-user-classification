@@ -2,7 +2,7 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import argparse
 
-from reveal_user_classification import integration
+from reveal_user_classification.reveal import integration
 
 
 def translate_assessment_id(assessment_id):
@@ -26,7 +26,7 @@ def main():
     """
     Entry point.
     """
-    # Parse arguments
+    # Parse arguments.
     parser = argparse.ArgumentParser()
     parser.add_argument("-uri", "--mongo-uri", dest="mongo_uri",
                         help="A mongo client URI.",
@@ -36,7 +36,7 @@ def main():
                         type=str, required=False, default="snow_tweet_storage.tweets")
     parser.add_argument("-tak", "--twitter-app-key", dest="twitter_app_key",
                         help="Twitter app key.",
-                        type=str, required=True,)
+                        type=str, required=True)
     parser.add_argument("-tas", "--twitter-app-secret", dest="twitter_app_secret",
                         help="Twitter app secret.",
                         type=str, required=True)
@@ -52,6 +52,15 @@ def main():
     parser.add_argument("-rmqrk", "--rabbitmq-routing-key", dest="rabbitmq_routing_key",
                         help="RabbitMQ routing key (e.g. \"amqp://guest:guest@localhost:5672/vhost\").",
                         type=str, required=True)
+    parser.add_argument("-pshn", "--pserver-host-name", dest="pserver_host_name",
+                        help="The address of the machine where the PServer instance is hosted.",
+                        type=str, required=False, default=None)
+    parser.add_argument("-pscn", "--pserver-client-name", dest="pserver_client_name",
+                        help="The PServer client name.",
+                        type=str, required=False, default=None)
+    parser.add_argument("-pscp", "--pserver-client-pass", dest="pserver_client_pass",
+                        help="The PServer client's password.",
+                        type=str, required=False, default=None)
     parser.add_argument("-ln", "--latest-n", dest="latest_n",
                         help="Get only the N most recent documents.",
                         type=int, required=False, default=100000)
@@ -91,6 +100,10 @@ def main():
     rabbitmq_queue = args.rabbitmq_queue
     rabbitmq_exchange = args.rabbitmq_exchange
     rabbitmq_routing_key = args.rabbitmq_routing_key
+    pserver_host_name = args.pserver_host_name
+    pserver_client_name = args.pserver_client_name
+    pserver_client_pass = args.pserver_client_pass
+
     tweet_input_database_name, tweet_input_collection_name = translate_assessment_id(assessment_id)
 
     latest_n = args.latest_n
@@ -103,7 +116,6 @@ def main():
     local_resources_folder = args.local_resources_folder
     max_number_of_labels = args.max_number_of_labels
 
-
     integration.user_network_profile_classifier(mongo_uri=mongo_uri,
                                                 twitter_app_key=twitter_app_key,
                                                 twitter_app_secret=twitter_app_secret,
@@ -111,6 +123,9 @@ def main():
                                                 rabbitmq_queue=rabbitmq_queue,
                                                 rabbitmq_exchange=rabbitmq_exchange,
                                                 rabbitmq_routing_key=rabbitmq_routing_key,
+                                                pserver_host_name=pserver_host_name,
+                                                pserver_client_name=pserver_client_name,
+                                                pserver_client_pass=pserver_client_pass,
                                                 tweet_input_database_name=tweet_input_database_name,
                                                 tweet_input_collection_name=tweet_input_collection_name,
                                                 latest_n=latest_n,
