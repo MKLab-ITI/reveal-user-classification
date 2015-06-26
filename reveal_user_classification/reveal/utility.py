@@ -15,7 +15,7 @@ from reveal_user_annotation.mongo.preprocess_data import get_collection_document
     extract_connected_components
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
-from reveal_user_annotation.pserver.requests import delete_features, add_features, insert_user_data
+from reveal_user_annotation.pserver.request import delete_features, add_features, insert_user_data
 
 
 def get_graphs_and_lemma_matrix(client,
@@ -76,8 +76,7 @@ def integrate_graphs(mention_graph, node_to_id, restart_probability, number_of_t
     features, centrality = arcte(adjacency_matrix=adjacency_matrix,
                                  rho=restart_probability,
                                  epsilon=0.0001,
-                                 number_of_threads=number_of_threads,
-                                 calculate_centrality=True)
+                                 number_of_threads=number_of_threads)
 
     return adjacency_matrix, node_to_id, features, centrality
 

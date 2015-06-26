@@ -6,6 +6,21 @@ import numpy as np
 from reveal_user_annotation.common.datarw import get_file_row_generator
 
 
+def write_results(performance_measures, target_file_path):
+    with open(target_file_path, "w") as fp:
+        first_row = "*** Percentages:" + "\n"
+        fp.write(first_row)
+
+        second_row = "1\t2\t3\t4\t5\t6\t7\t8\t9\t10" + "\n"
+        fp.write(second_row)
+
+        fp.write("\n\n")
+        write_average_score_row(fp, "Macro F1", performance_measures[4])
+
+        fp.write("\n\n")
+        write_average_score_row(fp, "Micro F1", performance_measures[5])
+
+
 def store_performace_measures(performance_measures, memory_path, experiment_string):
     # Unpack performance measures
     # mean_macro_precision = performance_measures[0][0]

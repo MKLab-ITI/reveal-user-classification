@@ -9,7 +9,7 @@ import scipy.sparse as sparse
 
 from reveal_user_classification.eps_randomwalk.cython_opt.push import pagerank_limit_push
 from reveal_user_classification.eps_randomwalk.cython_opt.push import pagerank_lazy_push
-from reveal_user_classification.eps_randomwalk.cython_opt.push import regularized_limit_commute
+from reveal_user_classification.eps_randomwalk.cython_opt.push import cumulative_pagerank_difference_limit_push
 
 FLOAT64 = np.float64
 ctypedef np.float64_t FLOAT64_t

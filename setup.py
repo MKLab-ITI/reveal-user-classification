@@ -65,7 +65,7 @@ else:
 
 setup(
     name='reveal-user-classification',
-    version='0.1.16',
+    version='0.1.17',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',
@@ -79,7 +79,6 @@ setup(
               'reveal_user_classification.eps_randomwalk.cython_opt',
               'reveal_user_classification.quality',
               'reveal_user_classification.experiments',
-              'reveal_user_classification.experiments.asu_experiments',
               'reveal_user_classification.entry_points'],
     cmdclass=cmdclass,
     ext_modules=ext_modules,
@@ -97,7 +96,6 @@ setup(
         'Programming Language :: Cython',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: Implementation',
@@ -106,16 +104,17 @@ setup(
     ],
     keywords="online-social-network user-classification Reveal-FP7",
     entry_points={
-        'console_scripts': ['user_network_profile_classifier=reveal_user_classification.entry_points.user_network_profile_classifier:main'],
+        'console_scripts': ['user_network_profile_classifier=reveal_user_classification.entry_points.user_network_profile_classifier:main',
+                            'prototype_user_network_profile_classifier=reveal_user_classification.entry_points.prototype_user_network_profile_classifier:main'],
     },
     include_package_data=True,
     install_requires=[
-        "numpy",
-        "scipy",
-        "scikit-learn",
-        "Cython",
-        "h5py",
-        "python-louvain",
-        "reveal-user-annotation"
+        "numpy>=1.9.2",
+        "scipy>=0.15.1",
+        "scikit-learn>=0.16.1",
+        "Cython>=0.22",
+        "h5py>=2.5.0",
+        "python-louvain>=0.3",
+        "reveal-user-annotation==0.1.18"
     ],
 )

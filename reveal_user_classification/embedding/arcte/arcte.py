@@ -210,7 +210,7 @@ def arcte_worker(iterate_nodes,
         s = np.zeros(number_of_nodes, dtype=np.float64)  #TODO: What if it is only one?
         r = np.zeros(number_of_nodes, dtype=np.float64)
         for n_index in range(node_chunk.size):
-            print(n_index)
+            # print(n_index)
             n = node_chunk[n_index]
 
             # Calculate similarity matrix slice.
