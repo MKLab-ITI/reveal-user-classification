@@ -3,10 +3,10 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import LinearSVC
 from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import normalize
 import scipy.sparse as spsp
 from scipy.sparse import issparse
-import numpy as np
 
 
 def model_fit(X_train, y_train, svm_hardness, fit_intercept, number_of_threads, classifier_type="LinearSVC"):
@@ -83,7 +83,7 @@ def weigh_users(X_test, model, classifier_type="LinearSVC"):
     return decision_weights
 
 
-def classify_users(X_test, model):
+def classify_users(X_test, model, classifier_type="LinearSVC"):
     """
     Uses a trained model and the unlabelled features to associate users with labels.
 
@@ -96,10 +96,29 @@ def classify_users(X_test, model):
 
     Output:  - decision_weights: A NumPy array containing the distance of each user from each label discriminator.
     """
-    prediction = model.decision_function(X_test)
+    if classifier_type == "LinearSVC":
+        prediction = model.decision_function(X_test)
 
-    prediction[prediction > 0.0] = 1.0
-    prediction[prediction <= 0.0] = 0.0
-    prediction = spsp.coo_matrix(prediction)
+        # prediction[prediction > 0.0] = 1.0
+        prediction[prediction <= 0.0] = 0.0
+        prediction = spsp.coo_matrix(prediction)
+
+        prediction = normalize(prediction, norm="l2", axis=0)
+    elif classifier_type == "LogisticRegression":
+        prediction = model.predict_proba(X_test)
+
+        prediction[prediction <= 0.5] = 0.0
+        prediction = spsp.coo_matrix(prediction)
+    elif classifier_type == "RandomForest":
+        if issparse(X_test):
+            prediction = model.predict_proba(X_test.tocsr())
+        else:
+            prediction = model.predict_proba(X_test)
+
+        prediction[prediction <= 0.5] = 0.0
+        prediction = spsp.coo_matrix(prediction)
+    else:
+        print("Invalid classifier type.")
+        raise RuntimeError
 
     return prediction
