@@ -66,6 +66,5 @@ def calculate_measures(y_pred, y_test):
                   y_pred,
                   average=None)
 
-
     measures = [macro_recall, micro_recall, macro_precision, micro_precision, macro_F1, micro_F1, F1]
     return measures
