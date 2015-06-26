@@ -13,11 +13,20 @@ Features
 
 Install
 -------
+### Required packages
+- numpy
+- scipy
+- scikit-learn
+- Cython
+- h5py
+- python-louvain
+- [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation)
 
+### Installation
 To install for all users on Unix/Linux:
 
-    python setup.py build
-    sudo python setup.py install
+    python3.4 setup.py build
+    sudo python3.4 setup.py install
   
 Alternatively:
 
@@ -33,7 +42,3 @@ where `assessment_id` is the address of a MongoDB instance.
 
 ### Configuration
 The configuration of the [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation) project is required. Follow the README instructions.
-
-Experiments
------------
-(Section under construction.)
