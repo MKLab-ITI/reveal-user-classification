@@ -9,8 +9,9 @@ from reveal_user_annotation.common.datarw import load_pickle, store_pickle
 def read_features(method_name, path):
 
     sparse_feature_method_set = set()
-    sparse_feature_method_set.update(["arcte",
-                                      "egocomm",
+    sparse_feature_method_set.update(["apple",
+                                      "arcte",
+                                      "basecomm",
                                       "mroc",
                                       "edgecluster",
                                       "louvain",

@@ -102,8 +102,3 @@ def read_node_label_matrix(file_path, separator, number_of_nodes):
 
     return node_label_matrix, number_of_categories, labelled_node_indices
 
-
-def make_asu_directory_tree(raw_data_path, memory_path):
-    make_directory_tree(raw_data_path + "/ASU/BlogCatalog", memory_path + "/ASU/BlogCatalog")
-    make_directory_tree(raw_data_path + "/ASU/Flickr", memory_path + "/ASU/Flickr")
-    make_directory_tree(raw_data_path + "/ASU/YouTube", memory_path + "/ASU/YouTube")

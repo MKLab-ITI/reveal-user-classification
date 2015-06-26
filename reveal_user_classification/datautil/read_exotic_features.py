@@ -134,21 +134,46 @@ def read_matlab_features(array_paths, number_of_nodes, dimensionality):
     row = np.array(row).astype(np.int64) - 1  # Due to Matlab numbering
     col = np.array(col).astype(np.int64) - 1  # Due to Matlab numbering
 
+    print(np.max(row), np.min(row))
+    print(np.max(col), np.min(col))
+
     # centroids_new = sparse.coo_matrix((data, (row, col)), shape=(number_of_nodes + 1, k))
     features = spsp.coo_matrix((data, (row, col)), shape=(number_of_nodes, dimensionality))
 
     return features
 
 
-def read_deepwalk_features(deepwalk_folder):
-    file_row_gen = get_file_row_generator(deepwalk_folder + "/deepwalk_embedding.txt", " ")
+def read_deepwalk_features(deepwalk_folder, number_of_nodes=None):
+    file_row_gen = get_file_row_generator(deepwalk_folder + "/deepwalk.txt", " ")
 
     first_row = next(file_row_gen)
 
-    features = np.zeros((int(first_row[0]), int(first_row[1])), dtype=np.float64)
+    if number_of_nodes is not None:
+        features = np.zeros((number_of_nodes, int(first_row[1])), dtype=np.float64)
+    else:
+        features = np.zeros((int(first_row[0]), int(first_row[1])), dtype=np.float64)
 
     for file_row in file_row_gen:
         node = int(file_row[0]) - 1
         features[node, :] = np.array([np.float64(coordinate) for coordinate in file_row[1:]])
+
+    return features
+
+
+def read_dense_separated_value_file(file_path, number_of_nodes, separator=","):
+
+    file_row_gen = get_file_row_generator(file_path=file_path, separator=separator)
+
+    first_file_row = next(file_row_gen)
+    number_of_dimensions = len(first_file_row)
+
+    features = np.empty((number_of_nodes, number_of_dimensions), dtype=np.float64)
+
+    file_row_counter = 0
+    features[file_row_counter, :] = np.array(first_file_row)
+
+    for file_row in file_row_gen:
+        file_row_counter += 1
+        features[file_row_counter, :] = np.array(file_row)
 
     return features
