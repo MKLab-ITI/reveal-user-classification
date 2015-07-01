@@ -12,6 +12,8 @@ from reveal_user_classification.reveal.utility import get_graphs_and_lemma_matri
 
 
 def user_network_profile_classifier(mongo_uri,
+                                    tweet_input_database_name,
+                                    tweet_input_collection_name,
                                     twitter_app_key,
                                     twitter_app_secret,
                                     rabbitmq_uri,
@@ -21,17 +23,15 @@ def user_network_profile_classifier(mongo_uri,
                                     pserver_host_name,
                                     pserver_client_name,
                                     pserver_client_pass,
-                                    tweet_input_database_name,
-                                    tweet_input_collection_name,
                                     latest_n,
                                     lower_timestamp,
                                     upper_timestamp,
                                     restart_probability,
                                     number_of_threads,
                                     number_of_users_to_annotate,
+                                    max_number_of_labels,
                                     user_network_profile_classifier_db,
-                                    local_resources_folder,
-                                    max_number_of_labels):
+                                    local_resources_folder):
     """
     Performs Online Social Network user classification.
 
@@ -45,24 +45,51 @@ def user_network_profile_classifier(mongo_uri,
            - Stores the results at PServer.
 
     Input: - mongo_uri: A mongo client URI.
-           - assessment_id: This should translate uniquely to a mongo database-collection pair.
+           - tweet_input_database_name: The mongo database name where the input tweets are stored.
+           - tweet_input_collection_name: The mongo collection name where the input tweets are stored.
+           - twitter_app_key:
+           - twitter_app_secret:
+           - rabbitmq_uri:
+           - rabbitmq_queue:
+           - rabbitmq_exchange:
+           - rabbitmq_routing_key:
+           - pserver_host_name:
+           - pserver_client_name:
+           - pserver_client_pass:
            - latest_n: Get only the N most recent documents.
            - lower_timestamp: Get only documents created after this UNIX timestamp.
            - upper_timestamp: Get only documents created before this UNIX timestamp.
+           - restart_probability:
+           - number_of_threads:
+           - number_of_users_to_annotate:
+           - max_number_of_labels:
+           - user_network_profile_classifier_db:
+           - local_resources_folder: The preprocessed Twitter lists for a number of users are stored here.
     """
+    ####################################################################################################################
     # Manage argument input.
-    spec = None
-    time_spec = dict()
+    ####################################################################################################################
     if lower_timestamp is not None:
         lower_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(lower_timestamp),
                                                     "%b %d %Y %H:%M:%S")
-        time_spec = spec.setdefault("time", {"$gte": lower_datetime})
-    if upper_timestamp is not None:
-        upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
-                                                    "%b %d %Y %H:%M:%S")
-
-        time_spec["$lt"] = upper_datetime
-        spec["time"] = time_spec
+        if upper_timestamp is not None:
+            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+                                                        "%b %d %Y %H:%M:%S")
+            # Both timestamps are defined.
+            spec = dict()
+            spec["time"] = {"$gte": lower_datetime,
+                            "$lt": upper_datetime}
+        else:
+            spec = dict()
+            spec["time"] = {"$gte": lower_datetime}
+    else:
+        if upper_timestamp is not None:
+            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+                                                        "%b %d %Y %H:%M:%S")
+            spec = dict()
+            spec["time"] = {"$lt": upper_datetime}
+        else:
+            spec = None
 
     if number_of_threads is None:
         number_of_threads = get_threads_number()
