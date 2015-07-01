@@ -39,6 +39,3 @@ There is one console entry point:
     user_network_profile_classifier assessment_id
     
 where `assessment_id` is the address of a MongoDB instance.
-
-### Configuration
-The configuration of the [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation) project is required. Follow the README instructions.

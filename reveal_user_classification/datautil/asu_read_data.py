@@ -4,7 +4,6 @@ import numpy as np
 import scipy.sparse as sparse
 
 from reveal_user_annotation.common.datarw import get_file_row_generator
-from reveal_user_classification.datautil.make_directory_tree import make_directory_tree
 
 
 def read_adjacency_matrix(file_path, separator):
