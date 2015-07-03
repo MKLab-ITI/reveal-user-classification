@@ -8,7 +8,7 @@ from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_con
     rabbitmq_server_service
 from reveal_user_classification.reveal.utility import get_graphs_and_lemma_matrix, integrate_graphs,\
     fetch_twitter_lists, annotate_users, user_classification, get_user_topic_generator, write_results_to_mongo,\
-    write_results_to_pserver
+    write_topics_to_pserver
 
 
 def user_network_profile_classifier(mongo_uri,
@@ -158,7 +158,7 @@ def user_network_profile_classifier(mongo_uri,
     # Write data to pserver.
     if pserver_host_name is not None:
         topic_list = list(lemma_to_keyword.values())
-        write_results_to_pserver(pserver_host_name, pserver_client_name, pserver_client_pass, user_topic_gen, topic_list)
+        write_topics_to_pserver(pserver_host_name, pserver_client_name, pserver_client_pass, user_topic_gen, topic_list)
 
     # Publish success message on RabbitMQ.
     rabbitmq_server_service("restart")
