@@ -1,21 +1,79 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
-import numpy as np
-import scipy.sparse as spsp
 import os
 import json
 import itertools
+import datetime
+import numpy as np
+import scipy.sparse as spsp
 
-from reveal_user_classification.embedding.arcte.arcte import arcte
-from reveal_user_classification.classification import model_fit, classify_users
-from reveal_user_classification.embedding.common import normalize_columns
-from reveal_user_classification.embedding.community_weighting import chi2_psnr_community_weighting
+from reveal_user_annotation.mongo.mongo_util import establish_mongo_connection
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
-    extract_mention_graph_from_tweets,  store_user_documents, read_user_documents_generator,\
-    extract_connected_components
+    extract_graphs_from_tweets,  store_user_documents, read_user_documents_generator,\
+    extract_connected_components, extract_graphs_and_lemmas_from_tweets
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
 from reveal_user_annotation.pserver.request import delete_features, add_features, insert_user_data
+from reveal_graph_embedding.embedding.arcte.arcte import arcte
+from reveal_graph_embedding.embedding.common import normalize_columns
+from reveal_graph_embedding.embedding.community_weighting import chi2_psnr_community_weighting
+from reveal_graph_embedding.learning.classification import model_fit, classify_users
+
+
+def make_time_window_filter(lower_timestamp, upper_timestamp):
+    if lower_timestamp is not None:
+        lower_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(lower_timestamp),
+                                                    "%b %d %Y %H:%M:%S")
+        if upper_timestamp is not None:
+            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+                                                        "%b %d %Y %H:%M:%S")
+            # Both timestamps are defined.
+            spec = dict()
+            spec["time"] = {"$gte": lower_datetime,
+                            "$lt": upper_datetime}
+        else:
+            spec = dict()
+            spec["time"] = {"$gte": lower_datetime}
+    else:
+        if upper_timestamp is not None:
+            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+                                                        "%b %d %Y %H:%M:%S")
+            spec = dict()
+            spec["time"] = {"$lt": upper_datetime}
+        else:
+            spec = None
+
+    return spec
+
+
+def safe_establish_mongo_connection(mongo_uri, assessment_id):
+    """
+           - tweet_input_database_name: The mongo database name where the input tweets are stored.
+           - tweet_input_collection_name: The mongo collection name where the input tweets are stored.
+    """
+
+    client = establish_mongo_connection(mongo_uri)
+
+    tweet_input_database_name, tweet_input_collection_name = translate_assessment_id(assessment_id)
+
+    return client, tweet_input_database_name, tweet_input_collection_name
+
+
+def translate_assessment_id(assessment_id):
+    """
+    The assessment id is translated to MongoDB database and collection names.
+
+    Input:   - assessment_id: The connection details for making a connection with a MongoDB instance.
+
+    Outputs: - database_name: The name of the Mongo database in string format.
+             - collection_name: The name of the collection of tweets to read in string format.
+    """
+    assessment_id = assessment_id.split(".")
+
+    database_name = assessment_id[0]
+    collection_name = assessment_id[1]
+
+    return database_name, collection_name
 
 
 def get_graphs_and_lemma_matrix(client,
@@ -47,7 +105,13 @@ def get_graphs_and_lemma_matrix(client,
                                                    latest_n=latest_n,
                                                    sort_key="created_at")
 
-    mention_graph, user_id_set, node_to_id, id_to_name = extract_mention_graph_from_tweets(tweet_gen)
+    import time
+    start_time = time.perf_counter()
+
+    mention_graph, retweet_graph, tweet_id_set, user_id_set, node_to_id, id_to_name = extract_graphs_from_tweets(tweet_gen)
+
+    elapsed_time = time.perf_counter() - start_time
+    print("T: ", elapsed_time)
 
     return mention_graph, user_id_set, node_to_id
 

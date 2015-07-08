@@ -4,10 +4,10 @@ import gc
 import numpy as np
 from scipy import sparse as spsp
 
-from reveal_user_annotation.common.datarw import get_file_row_generator
-from reveal_user_classification.datautil.make_directory_tree import make_sure_path_exists
-from reveal_user_classification.datautil.insight_datautil.insight_read_data import scipy_sparse_to_csv,\
+from reveal_graph_embedding.common import get_file_row_generator
+from reveal_graph_embedding.datautil.insight_datautil.insight_read_data import scipy_sparse_to_csv,\
     read_adjacency_matrix
+from reveal_graph_embedding.datautil.make_directory_tree import make_sure_path_exists
 
 
 def make_folder_paths(insight_multiview_source_folder, dataset):

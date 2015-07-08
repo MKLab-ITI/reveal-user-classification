@@ -1,22 +1,22 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import argparse
-import numpy as np
 import os
+import numpy as np
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn import svm
 
 from reveal_user_classification.common import get_threads_number
-from reveal_user_classification.datautil.snow_datautil.snow_read_data import read_adjacency_matrix,\
+from reveal_graph_embedding.datautil.score_rw_util import write_results
+from reveal_graph_embedding.datautil.snow_datautil.snow_read_data import read_adjacency_matrix,\
     read_node_label_matrix
-from reveal_user_classification.embedding.arcte.arcte import arcte
-from reveal_user_classification.embedding.common import normalize_columns
-from reveal_user_classification.experiments.holdout import generate_folds
-from reveal_user_classification.embedding.community_weighting import chi2_contingency_matrix,\
+from reveal_graph_embedding.embedding.arcte.arcte import arcte
+from reveal_graph_embedding.embedding.common import normalize_columns
+from reveal_graph_embedding.embedding.community_weighting import chi2_contingency_matrix,\
     peak_snr_weight_aggregation, community_weighting
-from reveal_user_classification.experiments.evaluation import form_node_label_prediction_matrix
-from reveal_user_classification.experiments import evaluation
-from reveal_user_classification.datautil.score_rw_util import write_results
+from reveal_graph_embedding.learning.holdout import generate_folds
+from reveal_graph_embedding.learning.evaluation import form_node_label_prediction_matrix
+from reveal_graph_embedding.learning import evaluation
 
 
 def main():

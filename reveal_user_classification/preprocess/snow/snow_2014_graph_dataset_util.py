@@ -3,38 +3,26 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 import gc
 import os
 import json
+from multiprocessing import Pool
+from functools import partial
 import numpy as np
 import scipy.sparse as spsp
 import networkx as nx
-from multiprocessing import Pool
-from functools import partial
-from sklearn.neighbors import LSHForest
 
 from reveal_user_annotation.common.config_package import get_threads_number
 from reveal_user_annotation.common.datarw import store_pickle, load_pickle
 from reveal_user_annotation.mongo.preprocess_data import extract_graphs_and_lemmas_from_tweets,\
-    extract_connected_components, extract_mention_graph_from_tweets
+    extract_connected_components
 from reveal_user_annotation.text.map_data import chunks
-from reveal_user_annotation.twitter.clean_twitter_list import user_twitter_list_bag_of_words
-from reveal_user_annotation.twitter.user_annotate import semi_automatic_user_annotation
-from reveal_user_classification.datautil.make_directory_tree import make_sure_path_exists
-from reveal_user_classification.embedding.implicit import get_adjacency_matrix_via_combinatorial_laplacian,\
-    get_adjacency_matrix_via_directed_laplacian, get_multiview_transition_matrix, get_implicit_adjacency_matrices
-from reveal_user_classification.datautil.snow_datautil.snow_read_data import read_adjacency_matrix, scipy_sparse_to_csv,\
-    write_screen_name_to_topics
 from reveal_user_annotation.text.clean_text import clean_single_word
 from reveal_user_annotation.twitter.clean_twitter_list import user_twitter_list_bag_of_words
 from reveal_user_annotation.twitter.manage_resources import get_reveal_set, get_topic_keyword_dictionary
 from reveal_user_annotation.twitter.user_annotate import form_user_term_matrix, form_lemma_tokeyword_map, filter_user_term_matrix
-
-
-def make_text_graph(user_term_matrix):
-    lshf = LSHForest()
-    lshf.fit(user_term_matrix)
-
-    graph = lshf.kneighbors_graph(user_term_matrix, mode="distance")
-
-    return graph
+from reveal_graph_embedding.datautil.snow_datautil import read_adjacency_matrix, scipy_sparse_to_csv,\
+    write_screen_name_to_topics
+from reveal_user_classification.datautil.make_directory_tree import make_sure_path_exists
+from reveal_user_classification.embedding.implicit import get_adjacency_matrix_via_combinatorial_laplacian,\
+    get_adjacency_matrix_via_directed_laplacian, get_multiview_transition_matrix, get_implicit_adjacency_matrices
 
 
 def submatrix_pull_via_networkx(matrix, node_array, directed=True):

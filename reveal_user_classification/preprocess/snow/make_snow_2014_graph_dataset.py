@@ -1,7 +1,8 @@
 __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 import argparse
-from reveal_user_classification.datautil.snow_datautil.snow_2014_graph_dataset_util import process_tweet_collection,\
+
+from reveal_user_classification.preprocess.snow.snow_2014_graph_dataset_util import process_tweet_collection,\
     make_directory_tree, weakly_connected_graph, make_implicit_graphs, make_annotation
 from reveal_user_annotation.mongo.store_snow_data import extract_all_snow_tweets_from_disk_generator
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator
@@ -76,7 +77,7 @@ def make_dataset(snow_tweets_folder, graph_dataset_folder, twitter_lists_folder,
     #                 full_graph_folder)
 
 
-make_dataset(snow_tweets_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/snow_tweets_folder",
-             graph_dataset_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW",
-             twitter_lists_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/twitter_lists",
-             twitter_lists_keywords_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/twitter_lists_keywords")
+# make_dataset(snow_tweets_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/snow_tweets_folder",
+#              graph_dataset_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW",
+#              twitter_lists_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/twitter_lists",
+#              twitter_lists_keywords_folder="/home/georgerizos/Documents/LocalStorage/raw_data/SNOW/twitter_lists_keywords")

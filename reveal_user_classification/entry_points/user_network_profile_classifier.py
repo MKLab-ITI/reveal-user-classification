@@ -5,23 +5,6 @@ import argparse
 from reveal_user_classification.reveal import integration
 
 
-def translate_assessment_id(assessment_id):
-    """
-    The assessment id is translated to MongoDB database and collection names.
-
-    Input:   - assessment_id: The connection details for making a connection with a MongoDB instance.
-
-    Outputs: - database_name: The name of the Mongo database in string format.
-             - collection_name: The name of the collection of tweets to read in string format.
-    """
-    assessment_id = assessment_id.split(".")
-
-    database_name = assessment_id[0]
-    collection_name = assessment_id[1]
-
-    return database_name, collection_name
-
-
 def main():
     """
     Entry point.
@@ -122,7 +105,6 @@ def main():
 
     mongo_uri = args.mongo_uri
     assessment_id = args.assessment_id
-    tweet_input_database_name, tweet_input_collection_name = translate_assessment_id(assessment_id)
 
     twitter_app_key = args.twitter_app_key
     twitter_app_secret = args.twitter_app_secret
@@ -149,8 +131,7 @@ def main():
     local_resources_folder = args.local_resources_folder
 
     integration.user_network_profile_classifier(mongo_uri=mongo_uri,
-                                                tweet_input_database_name=tweet_input_database_name,
-                                                tweet_input_collection_name=tweet_input_collection_name,
+                                                assessment_id=assessment_id,
                                                 twitter_app_key=twitter_app_key,
                                                 twitter_app_secret=twitter_app_secret,
                                                 rabbitmq_uri=rabbitmq_uri,
