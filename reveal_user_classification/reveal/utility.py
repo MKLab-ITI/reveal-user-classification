@@ -29,20 +29,19 @@ def make_time_window_filter(lower_timestamp, upper_timestamp):
                                                         "%b %d %Y %H:%M:%S")
             # Both timestamps are defined.
             spec = dict()
-            spec["time"] = {"$gte": lower_datetime,
-                            "$lt": upper_datetime}
+            spec["created_at"] = {"$gte": lower_datetime, "$lt": upper_datetime}
         else:
             spec = dict()
-            spec["time"] = {"$gte": lower_datetime}
+            spec["created_at"] = {"$gte": lower_datetime}
     else:
         if upper_timestamp is not None:
             upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
                                                         "%b %d %Y %H:%M:%S")
             spec = dict()
-            spec["time"] = {"$lt": upper_datetime}
+            spec["created_at"] = {"$lt": upper_datetime}
         else:
             spec = None
-
+    print(spec)
     return spec
 
 
