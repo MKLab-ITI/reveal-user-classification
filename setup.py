@@ -2,6 +2,7 @@ __author__ = 'Georgios Rizos (georgerizos@iti.gr)'
 
 from setuptools import setup
 
+
 def readme():
     with open("README.md") as f:
         return f.read()

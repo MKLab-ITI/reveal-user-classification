@@ -6,6 +6,9 @@ import itertools
 import datetime
 import numpy as np
 import scipy.sparse as spsp
+import networkx as nx
+from networkx.algorithms.link_analysis import pagerank_scipy
+from collections import OrderedDict
 
 from reveal_user_annotation.mongo.mongo_util import establish_mongo_connection
 from reveal_user_annotation.mongo.preprocess_data import get_collection_documents_generator,\
@@ -22,11 +25,13 @@ from reveal_graph_embedding.learning.classification import model_fit, classify_u
 
 def make_time_window_filter(lower_timestamp, upper_timestamp):
     if lower_timestamp is not None:
-        lower_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(lower_timestamp),
-                                                    "%b %d %Y %H:%M:%S")
+        # lower_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(lower_timestamp),
+        #                                             "%b %d %Y %H:%M:%S")
+        lower_datetime = datetime.datetime.utcfromtimestamp(lower_timestamp)
         if upper_timestamp is not None:
-            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
-                                                        "%b %d %Y %H:%M:%S")
+            # upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+            #                                             "%b %d %Y %H:%M:%S")
+            upper_datetime = datetime.datetime.utcfromtimestamp(upper_timestamp)
             # Both timestamps are defined.
             spec = dict()
             spec["created_at"] = {"$gte": lower_datetime, "$lt": upper_datetime}
@@ -35,8 +40,9 @@ def make_time_window_filter(lower_timestamp, upper_timestamp):
             spec["created_at"] = {"$gte": lower_datetime}
     else:
         if upper_timestamp is not None:
-            upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
-                                                        "%b %d %Y %H:%M:%S")
+            # upper_datetime = datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(upper_timestamp),
+            #                                             "%b %d %Y %H:%M:%S")
+            upper_datetime = datetime.datetime.utcfromtimestamp(upper_timestamp)
             spec = dict()
             spec["created_at"] = {"$lt": upper_datetime}
         else:
@@ -112,10 +118,10 @@ def get_graphs_and_lemma_matrix(client,
     elapsed_time = time.perf_counter() - start_time
     print("T: ", elapsed_time)
 
-    return mention_graph, user_id_set, node_to_id
+    return mention_graph, retweet_graph, user_id_set, node_to_id
 
 
-def integrate_graphs(mention_graph, node_to_id, restart_probability, number_of_threads):
+def integrate_graphs(mention_graph, retweet_graph, node_to_id, restart_probability, number_of_threads):
     """
     A bit of post-processing of the graphs to end up with a single aggregate graph.
 
@@ -127,21 +133,45 @@ def integrate_graphs(mention_graph, node_to_id, restart_probability, number_of_t
     Outputs: - adjacency_matrix: An aggregate, post-processed view of the graphs.
              - node_to_id: A node to Twitter id map as a python dictionary.
              - features: The graph structure proximity features as calculated by ARCTE in scipy sparse matrix format.
-             - centrality: A vector containing centrality measure values.
+             - node_importances: A vector containing node importance values.
     """
     # Form the adjacency matrix.
-    adjacency_matrix = 0.25*mention_graph + 0.25*mention_graph.transpose()
+    adjacency_matrix = 0.25*mention_graph +\
+                       0.25*mention_graph.transpose() +\
+                       0.25*retweet_graph +\
+                       0.25*retweet_graph.transpose()
 
     # Here is where I need to extract connected components or something similar.
     adjacency_matrix, node_to_id, old_node_list = extract_connected_components(adjacency_matrix, "weak", node_to_id)
 
     # Extract features
-    features, centrality = arcte(adjacency_matrix=adjacency_matrix,
-                                 rho=restart_probability,
-                                 epsilon=0.0001,
-                                 number_of_threads=number_of_threads)
+    features = arcte(adjacency_matrix=adjacency_matrix,
+                     rho=restart_probability,
+                     epsilon=0.0001,
+                     number_of_threads=number_of_threads)
 
-    return adjacency_matrix, node_to_id, features, centrality
+    node_importances = calculate_node_importances(adjacency_matrix)
+
+    return adjacency_matrix, node_to_id, features, node_importances
+
+
+def calculate_node_importances(adjacency_matrix):
+    """
+    Calculates a vector that contains node importance values. This nodes are to be automatically annotated later.
+
+    Input:  - adjacency_matrix
+
+    Output: - node_importances: A vector containing node importance values.
+    """
+    graph = nx.from_scipy_sparse_matrix(adjacency_matrix, create_using=nx.Graph())
+
+    node_importances = pagerank_scipy(graph, alpha=0.9, max_iter=500, tol=1.0e-8)
+
+    node_importances = OrderedDict(sorted(node_importances.items(), key=lambda t: t[0]))
+
+    node_importances = list(node_importances.values())
+
+    return node_importances
 
 
 def fetch_twitter_lists(client,
@@ -402,4 +432,8 @@ def write_topics_to_pserver(host_name, client_name, client_pass, user_topic_gen,
 
     # Store the score-label tuples.
     for user_twitter_id, topic_to_score in user_topic_gen:
-        insert_user_data(user_twitter_id, topic_to_score)
+        insert_user_data(host_name=host_name,
+                         client_name=client_name,
+                         client_pass=client_pass,
+                         user_twitter_id=user_twitter_id,
+                         topic_to_score=topic_to_score)

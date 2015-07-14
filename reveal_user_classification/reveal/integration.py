@@ -80,16 +80,20 @@ def user_network_profile_classifier(mongo_uri,
     ####################################################################################################################
     # Preprocess tweets.
     ####################################################################################################################
-    mention_graph, user_id_set, node_to_id = get_graphs_and_lemma_matrix(client,
-                                                                         tweet_input_database_name,
-                                                                         tweet_input_collection_name,
-                                                                         spec,
-                                                                         latest_n)
+    mention_graph,\
+    retweet_graph,\
+    user_id_set,\
+    node_to_id = get_graphs_and_lemma_matrix(client,
+                                             tweet_input_database_name,
+                                             tweet_input_collection_name,
+                                             spec,
+                                             latest_n)
 
-    adjacency_matrix, node_to_id, features, centrality = integrate_graphs(mention_graph,
-                                                                          node_to_id,
-                                                                          restart_probability,
-                                                                          number_of_threads)
+    adjacency_matrix, node_to_id, features, node_importances = integrate_graphs(mention_graph,
+                                                                                retweet_graph,
+                                                                                node_to_id,
+                                                                                restart_probability,
+                                                                                number_of_threads)
 
     ####################################################################################################################
     # Annotate users.
@@ -102,7 +106,7 @@ def user_network_profile_classifier(mongo_uri,
                                                  twitter_app_secret,
                                                  user_network_profile_classifier_db,
                                                  local_resources_folder,
-                                                 centrality,
+                                                 node_importances,
                                                  number_of_users_to_annotate,
                                                  node_to_id)
 
@@ -136,9 +140,16 @@ def user_network_profile_classifier(mongo_uri,
     # Write data to pserver.
     if pserver_host_name is not None:
         topic_list = list(lemma_to_keyword.values())
-        write_topics_to_pserver(pserver_host_name, pserver_client_name, pserver_client_pass, user_topic_gen, topic_list)
+        try:
+            write_topics_to_pserver(pserver_host_name,
+                                    pserver_client_name,
+                                    pserver_client_pass,
+                                    user_topic_gen,
+                                    topic_list)
+        except Exception:
+            print("Unable to write results to PServer.")
 
-    # Publish success message on RabbitMQ.
+    # Publish results and success message on RabbitMQ.
     rabbitmq_server_service("restart")
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
