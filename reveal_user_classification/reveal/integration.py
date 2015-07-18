@@ -129,13 +129,15 @@ def user_network_profile_classifier(mongo_uri,
     prediction = user_classification(features, user_label_matrix, annotated_user_ids, node_to_id, number_of_threads)
 
     ####################################################################################################################
-    # Write to Mongo and/or PServer.
+    # Write to Mongo, PServer and/or RabbitMQ.
     ####################################################################################################################
-    # Form a python generator of users and associated topic keywords.
-    user_topic_gen = get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_keyword)
-
     # Write data to mongo.
-    write_results_to_mongo(client, user_network_profile_classifier_db, user_topic_gen)
+    write_results_to_mongo(client,
+                           user_network_profile_classifier_db,
+                           get_user_topic_generator(prediction,
+                                                    node_to_id,
+                                                    label_to_lemma,
+                                                    lemma_to_keyword))
 
     # Write data to pserver.
     if pserver_host_name is not None:
@@ -144,7 +146,10 @@ def user_network_profile_classifier(mongo_uri,
             write_topics_to_pserver(pserver_host_name,
                                     pserver_client_name,
                                     pserver_client_pass,
-                                    user_topic_gen,
+                                    get_user_topic_generator(prediction,
+                                                             node_to_id,
+                                                             label_to_lemma,
+                                                             lemma_to_keyword),
                                     topic_list)
         except Exception:
             print("Unable to write results to PServer.")

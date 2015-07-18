@@ -388,7 +388,7 @@ def get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_ke
         label_scores = list(prediction_row.data)
         labels_and_label_scores = zip(labels, label_scores)
 
-        if labels.size != 0:
+        if len(labels) != 0:
             topics = dict()
             topics["topic_to_score"] = {lemma_to_keyword[label_to_lemma[label]]: score for label, score in labels_and_label_scores}
 
@@ -437,3 +437,13 @@ def write_topics_to_pserver(host_name, client_name, client_pass, user_topic_gen,
                          client_pass=client_pass,
                          user_twitter_id=user_twitter_id,
                          topic_to_score=topic_to_score)
+
+
+def publish_results_via_rabbitmq():
+    """
+    What is says on the tin.
+
+    Inputs:
+            - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
+    """
+    pass
