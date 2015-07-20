@@ -6,7 +6,7 @@ from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_con
     rabbitmq_server_service
 from reveal_user_classification.reveal.utility import make_time_window_filter, safe_establish_mongo_connection,\
     get_graphs_and_lemma_matrix, integrate_graphs, fetch_twitter_lists, annotate_users, user_classification,\
-    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver
+    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver, publish_results_via_rabbitmq
 
 
 def user_network_profile_classifier(mongo_uri,
@@ -157,5 +157,15 @@ def user_network_profile_classifier(mongo_uri,
     # Publish results and success message on RabbitMQ.
     rabbitmq_server_service("restart")
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
+
+    publish_results_via_rabbitmq(rabbitmq_connection,
+                                 rabbitmq_queue,
+                                 rabbitmq_exchange,
+                                 rabbitmq_routing_key,
+                                 get_user_topic_generator(prediction,
+                                                          node_to_id,
+                                                          label_to_lemma,
+                                                          lemma_to_keyword))
+
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
     rabbitmq_connection.close()

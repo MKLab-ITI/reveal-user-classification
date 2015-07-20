@@ -17,6 +17,7 @@ from reveal_user_annotation.mongo.preprocess_data import get_collection_document
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
 from reveal_user_annotation.pserver.request import delete_features, add_features, insert_user_data
+from reveal_user_annotation.rabbitmq.rabbitmq_util import simple_notification
 from reveal_graph_embedding.embedding.arcte.arcte import arcte
 from reveal_graph_embedding.embedding.common import normalize_columns
 from reveal_graph_embedding.embedding.community_weighting import chi2_psnr_community_weighting
@@ -47,7 +48,6 @@ def make_time_window_filter(lower_timestamp, upper_timestamp):
             spec["created_at"] = {"$lt": upper_datetime}
         else:
             spec = None
-    print(spec)
     return spec
 
 
@@ -110,13 +110,12 @@ def get_graphs_and_lemma_matrix(client,
                                                    latest_n=latest_n,
                                                    sort_key="created_at")
 
-    import time
-    start_time = time.perf_counter()
-
-    mention_graph, retweet_graph, tweet_id_set, user_id_set, node_to_id, id_to_name = extract_graphs_from_tweets(tweet_gen)
-
-    elapsed_time = time.perf_counter() - start_time
-    print("T: ", elapsed_time)
+    mention_graph,\
+    retweet_graph,\
+    tweet_id_set,\
+    user_id_set,\
+    node_to_id,\
+    id_to_name = extract_graphs_from_tweets(tweet_gen)
 
     return mention_graph, retweet_graph, user_id_set, node_to_id
 
@@ -147,7 +146,7 @@ def integrate_graphs(mention_graph, retweet_graph, node_to_id, restart_probabili
     # Extract features
     features = arcte(adjacency_matrix=adjacency_matrix,
                      rho=restart_probability,
-                     epsilon=0.0001,
+                     epsilon=0.00001,
                      number_of_threads=number_of_threads)
 
     node_importances = calculate_node_importances(adjacency_matrix)
@@ -169,7 +168,7 @@ def calculate_node_importances(adjacency_matrix):
 
     node_importances = OrderedDict(sorted(node_importances.items(), key=lambda t: t[0]))
 
-    node_importances = list(node_importances.values())
+    node_importances = np.array(list(node_importances.values()), dtype=np.float64)
 
     return node_importances
 
@@ -352,11 +351,13 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
                       svm_hardness=1.0,
                       fit_intercept=True,
                       number_of_threads=number_of_threads,
-                      classifier_type="RandomForest")
+                      classifier_type="LogisticRegression")
+                      # classifier_type="RandomForest")
     prediction = spsp.csr_matrix(user_label_matrix.shape, dtype=np.float64)
     y_pred = classify_users(X_test,
                             model,
-                            classifier_type="RandomForest")
+                            classifier_type="LogisticRegression")
+                            # classifier_type="RandomForest")
     y_pred = spsp.csr_matrix(y_pred)
     prediction[non_annotated_user_ids, :] = y_pred
     prediction[annotated_user_ids, :] = user_label_matrix[annotated_user_ids, :]
@@ -395,7 +396,9 @@ def get_user_topic_generator(prediction, node_to_id, label_to_lemma, lemma_to_ke
             yield twitter_user_id, topics
 
 
-def write_results_to_mongo(client, user_network_profile_classifier_db, user_topic_gen):
+def write_results_to_mongo(client,
+                           user_network_profile_classifier_db,
+                           user_topic_gen):
     """
     What it says on the tin.
 
@@ -409,7 +412,11 @@ def write_results_to_mongo(client, user_network_profile_classifier_db, user_topi
                          mongo_collection_name="user_topics_collection")
 
 
-def write_topics_to_pserver(host_name, client_name, client_pass, user_topic_gen, topic_list):
+def write_topics_to_pserver(host_name,
+                            client_name,
+                            client_pass,
+                            user_topic_gen,
+                            topic_list):
     """
     What is says on the tin.
 
@@ -439,11 +446,27 @@ def write_topics_to_pserver(host_name, client_name, client_pass, user_topic_gen,
                          topic_to_score=topic_to_score)
 
 
-def publish_results_via_rabbitmq():
+def publish_results_via_rabbitmq(rabbitmq_connection,
+                                 rabbitmq_queue,
+                                 rabbitmq_exchange,
+                                 rabbitmq_routing_key,
+                                 user_topic_gen):
     """
     What is says on the tin.
 
     Inputs:
             - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
     """
-    pass
+    for user_twitter_id, topic_to_score in user_topic_gen:
+        results_dictionary = dict()
+        results_dictionary["contributor_id"] = str(user_twitter_id)
+        results_dictionary["type"] = [[str(user_type), repr(score)] for user_type, score in topic_to_score.items()]
+
+        results_string = json.dumps(results_dictionary)
+
+        # Publish the message.
+        simple_notification(rabbitmq_connection,
+                            rabbitmq_queue,
+                            rabbitmq_exchange,
+                            rabbitmq_routing_key,
+                            results_string)
