@@ -17,10 +17,9 @@ Install
 - numpy
 - scipy
 - scikit-learn
-- Cython
-- h5py
-- python-louvain
+- networkx
 - [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation)
+- [reveal-graph-embedding](https://github.com/MKLab-ITI/reveal-graph-embedding)
 
 ### Installation
 To install for all users on Unix/Linux:
