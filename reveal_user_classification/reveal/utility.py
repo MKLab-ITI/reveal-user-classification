@@ -17,7 +17,7 @@ from reveal_user_annotation.mongo.preprocess_data import get_collection_document
 from reveal_user_annotation.twitter.user_annotate import decide_which_users_to_annotate,\
     fetch_twitter_lists_for_user_ids_generator, extract_user_keywords_generator, form_user_label_matrix
 from reveal_user_annotation.pserver.request import delete_features, add_features, insert_user_data
-from reveal_user_annotation.rabbitmq.rabbitmq_util import simple_notification
+from reveal_user_annotation.rabbitmq.rabbitmq_util import simple_notification, simpler_notification
 from reveal_graph_embedding.embedding.arcte.arcte import arcte
 from reveal_graph_embedding.embedding.common import normalize_columns
 from reveal_graph_embedding.embedding.community_weighting import chi2_psnr_community_weighting
@@ -457,6 +457,11 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
     Inputs:
             - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
     """
+    channel = rabbitmq_connection.channel()
+    channel.queue_declare(rabbitmq_queue, durable=True)
+    channel.exchange_declare(rabbitmq_exchange, type='direct', durable=True)
+    channel.queue_bind(rabbitmq_queue, rabbitmq_exchange, routing_key=rabbitmq_routing_key)
+
     for user_twitter_id, topic_to_score in user_topic_gen:
         results_dictionary = dict()
         results_dictionary["contributor_id"] = str(user_twitter_id)
@@ -465,8 +470,8 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
         results_string = json.dumps(results_dictionary)
 
         # Publish the message.
-        simple_notification(rabbitmq_connection,
-                            rabbitmq_queue,
-                            rabbitmq_exchange,
-                            rabbitmq_routing_key,
-                            results_string)
+        simpler_notification(channel,
+                             rabbitmq_queue,
+                             rabbitmq_exchange,
+                             rabbitmq_routing_key,
+                             results_string)
