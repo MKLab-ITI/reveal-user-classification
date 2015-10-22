@@ -5,11 +5,11 @@ Performs user classification into labels using a set of seed Twitter users with 
 
 Features
 --------
-- Graph-based, multi-label user classification platform.
-- Implementation of the ARCTE (Absorbing Regularized Commute Times Embedding) algorithm for graph-based feature extraction.
-- Both python vanilla and cython-optimized versions.
-- Implementation of other feature extraction methods for graphs (Laplacian Eigenmaps, Louvain, MROC).
-- Evaluation score and time benchmarks.
+- Implementation of the [REVEAL FP7](http://revealproject.eu/) user-network-profile-classifier module.
+- Utilization of ARCTE algorithm for graph embedding via [reveal-graph-embedding](https://github.com/MKLab-ITI/reveal-graph-embedding).
+- Community weighting for improved graph-based user classification and via [reveal-graph-embedding](https://github.com/MKLab-ITI/reveal-graph-embedding).
+- Twitter list crowdsourcing for user annotation via [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation).
+- Messaging and communication with databases via [reveal-user-annotation](https://github.com/MKLab-ITI/reveal-user-annotation).
 
 Install
 -------

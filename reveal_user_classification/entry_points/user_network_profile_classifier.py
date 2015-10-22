@@ -66,7 +66,7 @@ def main():
     ####################################################################################################################
     parser.add_argument("-ln", "--latest-n", dest="latest_n",
                         help="Get only the N most recent documents.",
-                        type=int, required=False, default=100000)
+                        type=int, required=False, default=None)
     parser.add_argument("-lts", "--lower-timestamp", dest="lower_timestamp",
                         help="Get only documents created after this UNIX timestamp.",
                         type=float, required=False, default=None)
