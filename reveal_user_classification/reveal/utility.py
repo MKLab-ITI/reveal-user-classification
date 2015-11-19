@@ -198,12 +198,13 @@ def fetch_twitter_lists(client,
     already_annotated_user_ids = (set(user_twitter_ids_mongo + user_twitter_ids_local))
 
     # Calculate the most central users.
-    user_ids_to_annotate = decide_which_users_to_annotate(centrality_vector=centrality,
-                                                          number_to_annotate=number_of_users_to_annotate,
-                                                          already_annotated=already_annotated_user_ids,
-                                                          node_to_id=node_to_id)
-
-    print("Annotating users with Twitter ids: ", user_ids_to_annotate)
+    if number_of_users_to_annotate > 0:
+        user_ids_to_annotate = decide_which_users_to_annotate(centrality_vector=centrality,
+                                                              number_to_annotate=number_of_users_to_annotate,
+                                                              already_annotated=already_annotated_user_ids,
+                                                              node_to_id=node_to_id)
+    else:
+        user_ids_to_annotate = list()
 
     # Fetch Twitter lists.
     twitter_lists_gen = fetch_twitter_lists_for_user_ids_generator(twitter_app_key,
@@ -251,7 +252,6 @@ def find_already_annotated(client, mongo_database_name, local_resources_folder):
         user_twitter_ids_local = [int(user_twitter_id[:-5]) for user_twitter_id in file_list]
     else:
         user_twitter_ids_local = list()
-    # user_twitter_ids_local = list()
 
     return user_twitter_ids_mongo, user_twitter_ids_local
 
@@ -345,19 +345,20 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
     y_train = user_label_matrix[annotated_user_ids, :]
 
     X_train, X_test = chi2_psnr_community_weighting(X_train, X_test, y_train)
+    print("Performed community weighting.")
 
     model = model_fit(X_train,
                       y_train,
                       svm_hardness=1.0,
                       fit_intercept=True,
                       number_of_threads=number_of_threads,
-                      classifier_type="LogisticRegression")
-                      # classifier_type="RandomForest")
+                      # classifier_type="LogisticRegression")
+                      classifier_type="RandomForest")
     prediction = spsp.csr_matrix(user_label_matrix.shape, dtype=np.float64)
     y_pred = classify_users(X_test,
                             model,
-                            classifier_type="LogisticRegression")
-                            # classifier_type="RandomForest")
+                            # classifier_type="LogisticRegression")
+                            classifier_type="RandomForest")
     y_pred = spsp.csr_matrix(y_pred)
     prediction[non_annotated_user_ids, :] = y_pred
     prediction[annotated_user_ids, :] = user_label_matrix[annotated_user_ids, :]
@@ -457,6 +458,9 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
     Inputs:
             - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
     """
+    # for user_twitter_id, topic_to_score in user_topic_gen:
+    #     print(user_twitter_id, topic_to_score)
+
     channel = rabbitmq_connection.channel()
     channel.queue_declare(rabbitmq_queue, durable=True)
     channel.exchange_declare(rabbitmq_exchange, type='direct', durable=True)

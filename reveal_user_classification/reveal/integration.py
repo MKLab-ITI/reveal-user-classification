@@ -76,6 +76,7 @@ def user_network_profile_classifier(mongo_uri,
     client,\
     tweet_input_database_name,\
     tweet_input_collection_name = safe_establish_mongo_connection(mongo_uri, assessment_id)
+    print("MongoDB connection established.")
 
     ####################################################################################################################
     # Preprocess tweets.
@@ -88,12 +89,25 @@ def user_network_profile_classifier(mongo_uri,
                                              tweet_input_collection_name,
                                              spec,
                                              latest_n)
+    print("Users and user interactions extracted.")
 
-    adjacency_matrix, node_to_id, features, node_importances = integrate_graphs(mention_graph,
-                                                                                retweet_graph,
-                                                                                node_to_id,
-                                                                                restart_probability,
-                                                                                number_of_threads)
+    adjacency_matrix,\
+    node_to_id,\
+    features,\
+    node_importances = integrate_graphs(mention_graph,
+                                        retweet_graph,
+                                        node_to_id,
+                                        restart_probability,
+                                        number_of_threads)
+    number_of_users = adjacency_matrix.shape[0]
+    print("Number of users in biggest network component: ", number_of_users)
+    if number_of_users < 2:
+        rabbitmq_server_service("restart")
+        rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
+
+        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "FAILURE")
+        rabbitmq_connection.close()
+        print("Failure message published via RabbitMQ.")
 
     ####################################################################################################################
     # Annotate users.
@@ -109,6 +123,7 @@ def user_network_profile_classifier(mongo_uri,
                                                  node_importances,
                                                  number_of_users_to_annotate,
                                                  node_to_id)
+    print("Annotating users with Twitter ids: ", user_ids_to_annotate)
 
     user_label_matrix,\
     annotated_user_ids,\
@@ -122,11 +137,21 @@ def user_network_profile_classifier(mongo_uri,
                                       user_network_profile_classifier_db,
                                       node_to_id,
                                       max_number_of_labels)
+    number_of_labels = user_label_matrix.shape[1]
+    print("Number of labels for classification: ", number_of_labels)
+    if number_of_labels < 2:
+        rabbitmq_server_service("restart")
+        rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
+
+        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "FAILURE")
+        rabbitmq_connection.close()
+        print("Failure message published via RabbitMQ.")
 
     ####################################################################################################################
     # Perform user classification.
     ####################################################################################################################
     prediction = user_classification(features, user_label_matrix, annotated_user_ids, node_to_id, number_of_threads)
+    print("User classification complete.")
 
     ####################################################################################################################
     # Write to Mongo, PServer and/or RabbitMQ.
@@ -138,6 +163,7 @@ def user_network_profile_classifier(mongo_uri,
                                                     node_to_id,
                                                     label_to_lemma,
                                                     lemma_to_keyword))
+    print("Results written in MongoDB.")
 
     # Write data to pserver.
     if pserver_host_name is not None:
@@ -151,6 +177,7 @@ def user_network_profile_classifier(mongo_uri,
                                                              label_to_lemma,
                                                              lemma_to_keyword),
                                     topic_list)
+            print("Results written in PServer.")
         except Exception:
             print("Unable to write results to PServer.")
 
@@ -166,6 +193,8 @@ def user_network_profile_classifier(mongo_uri,
                                                           node_to_id,
                                                           label_to_lemma,
                                                           lemma_to_keyword))
+    print("Results published via RabbitMQ.")
 
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
     rabbitmq_connection.close()
+    print("Success message published via RabbitMQ.")

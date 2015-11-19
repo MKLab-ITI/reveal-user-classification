@@ -98,7 +98,7 @@ def main():
                         type=str, required=False, default="user_network_profile_classifier_db")
     parser.add_argument("-lrf", "--local-resources-folder", dest="local_resources_folder",
                         help="We may have a certain number of twitter list data stored locally.",
-                        type=str, required=False, default=None)
+                        type=str, required=False, default="/data/LocalStorage/memory/SNOW/twitter_lists/")
 
     # Extract arguments.
     args = parser.parse_args()
