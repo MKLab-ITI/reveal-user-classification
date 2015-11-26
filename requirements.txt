@@ -3,4 +3,4 @@ scipy>=0.15.1
 scikit-learn>=0.16.1
 networkx>=1.9.1
 reveal-user-annotation==0.2.1
-reveal-graph-embedding==0.1.3
+reveal-graph-embedding==0.1.4
