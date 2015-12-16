@@ -349,16 +349,18 @@ def user_classification(features, user_label_matrix, annotated_user_ids, node_to
 
     model = model_fit(X_train,
                       y_train,
-                      svm_hardness=1.0,
+                      svm_hardness=10.0,
                       fit_intercept=True,
                       number_of_threads=number_of_threads,
-                      # classifier_type="LogisticRegression")
-                      classifier_type="RandomForest")
+                      classifier_type="LogisticRegression")
+                      # classifier_type="RandomForest")
+    print("Classification model has been trained.")
     prediction = spsp.csr_matrix(user_label_matrix.shape, dtype=np.float64)
     y_pred = classify_users(X_test,
                             model,
-                            # classifier_type="LogisticRegression")
-                            classifier_type="RandomForest")
+                            classifier_type="LogisticRegression")
+                            # classifier_type="RandomForest")
+    print("Classification on new data has been performed.")
     y_pred = spsp.csr_matrix(y_pred)
     prediction[non_annotated_user_ids, :] = y_pred
     prediction[annotated_user_ids, :] = user_label_matrix[annotated_user_ids, :]
