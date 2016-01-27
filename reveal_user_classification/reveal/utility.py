@@ -114,10 +114,11 @@ def get_graphs_and_lemma_matrix(client,
     retweet_graph,\
     tweet_id_set,\
     user_id_set,\
+    twitter_id_to_reveal_id,\
     node_to_id,\
     id_to_name = extract_graphs_from_tweets(tweet_gen)
 
-    return mention_graph, retweet_graph, user_id_set, node_to_id
+    return mention_graph, retweet_graph, user_id_set, twitter_id_to_reveal_id, node_to_id
 
 
 def integrate_graphs(mention_graph, retweet_graph, node_to_id, restart_probability, number_of_threads):
@@ -412,7 +413,7 @@ def write_results_to_mongo(client,
     store_user_documents(user_topic_gen,
                          client=client,
                          mongo_database_name=user_network_profile_classifier_db,
-                         mongo_collection_name="user_topics_collection")
+                         mongo_collection_name="user_network_profile_classifier_output")
 
 
 def write_topics_to_pserver(host_name,
@@ -481,3 +482,19 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
                              rabbitmq_exchange,
                              rabbitmq_routing_key,
                              results_string)
+
+
+def write_results_to_txt(file_path,
+                         user_topic_gen):
+    with open(file_path, "w") as outfile:
+
+        for user_twitter_id, topic_to_score in user_topic_gen:
+            results_dictionary = dict()
+            results_dictionary["contributor_id"] = str(user_twitter_id)
+            results_dictionary["type"] = [[str(user_type), repr(score)] for user_type, score in topic_to_score.items()]
+
+            json.dump(results_dictionary, outfile)
+
+            outfile.write("\n")
+
+        # results_string = json.dumps(results_dictionary)

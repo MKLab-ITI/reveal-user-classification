@@ -6,7 +6,8 @@ from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_con
     rabbitmq_server_service
 from reveal_user_classification.reveal.utility import make_time_window_filter, safe_establish_mongo_connection,\
     get_graphs_and_lemma_matrix, integrate_graphs, fetch_twitter_lists, annotate_users, user_classification,\
-    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver, publish_results_via_rabbitmq
+    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver, publish_results_via_rabbitmq,\
+    write_results_to_txt
 
 
 def user_network_profile_classifier(mongo_uri,
@@ -84,6 +85,7 @@ def user_network_profile_classifier(mongo_uri,
     mention_graph,\
     retweet_graph,\
     user_id_set,\
+    twitter_id_to_reveal_id,\
     node_to_id = get_graphs_and_lemma_matrix(client,
                                              tweet_input_database_name,
                                              tweet_input_collection_name,
@@ -105,7 +107,7 @@ def user_network_profile_classifier(mongo_uri,
         rabbitmq_server_service("restart")
         rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
 
-        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "FAILURE")
+        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "NOT_ENOUGH_CONNECTIONS")
         rabbitmq_connection.close()
         print("Failure message published via RabbitMQ.")
 
@@ -143,7 +145,7 @@ def user_network_profile_classifier(mongo_uri,
         rabbitmq_server_service("restart")
         rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
 
-        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "FAILURE")
+        simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "NOT_ENOUGH_KEYWORDS")
         rabbitmq_connection.close()
         print("Failure message published via RabbitMQ.")
 
@@ -157,13 +159,25 @@ def user_network_profile_classifier(mongo_uri,
     # Write to Mongo, PServer and/or RabbitMQ.
     ####################################################################################################################
     # Write data to mongo.
+    # write_results_to_mongo(client,
+    #                        user_network_profile_classifier_db,
+    #                        get_user_topic_generator(prediction,
+    #                                                 node_to_id,
+    #                                                 label_to_lemma,
+    #                                                 lemma_to_keyword))
     write_results_to_mongo(client,
-                           user_network_profile_classifier_db,
+                           tweet_input_database_name,
                            get_user_topic_generator(prediction,
                                                     node_to_id,
                                                     label_to_lemma,
                                                     lemma_to_keyword))
     print("Results written in MongoDB.")
+
+    # write_results_to_txt("/home/georgerizos/Documents/ncsr.txt",
+    #                      get_user_topic_generator(prediction,
+    #                                               node_to_id,
+    #                                               label_to_lemma,
+    #                                               lemma_to_keyword))
 
     # Write data to pserver.
     if pserver_host_name is not None:
