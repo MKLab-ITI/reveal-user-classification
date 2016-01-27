@@ -85,7 +85,6 @@ def user_network_profile_classifier(mongo_uri,
     mention_graph,\
     retweet_graph,\
     user_id_set,\
-    twitter_id_to_reveal_id,\
     node_to_id = get_graphs_and_lemma_matrix(client,
                                              tweet_input_database_name,
                                              tweet_input_collection_name,

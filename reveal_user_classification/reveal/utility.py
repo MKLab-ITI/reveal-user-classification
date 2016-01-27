@@ -114,11 +114,10 @@ def get_graphs_and_lemma_matrix(client,
     retweet_graph,\
     tweet_id_set,\
     user_id_set,\
-    twitter_id_to_reveal_id,\
     node_to_id,\
     id_to_name = extract_graphs_from_tweets(tweet_gen)
 
-    return mention_graph, retweet_graph, user_id_set, twitter_id_to_reveal_id, node_to_id
+    return mention_graph, retweet_graph, user_id_set, node_to_id
 
 
 def integrate_graphs(mention_graph, retweet_graph, node_to_id, restart_probability, number_of_threads):
