@@ -10,7 +10,7 @@ def readme():
 
 setup(
     name='reveal-user-classification',
-    version='0.2.7',
+    version='0.2.8',
     author='Georgios Rizos',
     author_email='georgerizos@iti.gr',
     packages=['reveal_user_classification',

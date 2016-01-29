@@ -499,9 +499,10 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
         results_dictionary = dict()
         results_dictionary["certh:contributor_id"] = str(user_twitter_id)
         results_dictionary["certh:author_uri"] = "https://twitter.com/" + id_to_name[user_twitter_id]
-        results_dictionary["certh:type"] = [[str(user_type), float(score)] for user_type, score in topic_to_score.items()]
+        results_dictionary["certh:type"] = [[str(user_type), float(score)] for user_type, score in topic_to_score["topic_to_score"].items()]
 
         results_string = json.dumps(results_dictionary)
+        # print(results_string)
 
         # Publish the message.
         simpler_notification(channel,
