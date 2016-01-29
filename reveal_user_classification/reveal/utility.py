@@ -117,7 +117,7 @@ def get_graphs_and_lemma_matrix(client,
     node_to_id,\
     id_to_name = extract_graphs_from_tweets(tweet_gen)
 
-    return mention_graph, retweet_graph, user_id_set, node_to_id
+    return mention_graph, retweet_graph, user_id_set, node_to_id, id_to_name
 
 
 def integrate_graphs(mention_graph, retweet_graph, node_to_id, restart_probability, number_of_threads):
@@ -449,13 +449,40 @@ def write_topics_to_pserver(host_name,
                          topic_to_score=topic_to_score)
 
 
+def check_wp5_rabbitmq_connection(wp5_rabbitmq_connection,
+                                  wp5_rabbitmq_queue,
+                                  wp5_rabbitmq_exchange,
+                                  wp5_rabbitmq_routing_key,
+                                  rabbitmq_connection,
+                                  rabbitmq_queue,
+                                  rabbitmq_exchange,
+                                  rabbitmq_routing_key,
+                                  assessment_id):
+    wp5_rabbitmq_exchange = assessment_id + "_certh_user_types"
+
+    if wp5_rabbitmq_connection is None:
+        wp5_rabbitmq_connection = rabbitmq_connection
+
+    if wp5_rabbitmq_queue is None:
+        wp5_rabbitmq_queue = rabbitmq_queue
+
+    if wp5_rabbitmq_routing_key is None:
+        wp5_rabbitmq_routing_key = rabbitmq_routing_key
+
+    return wp5_rabbitmq_connection,\
+           wp5_rabbitmq_queue,\
+           wp5_rabbitmq_exchange,\
+           wp5_rabbitmq_routing_key
+
+
 def publish_results_via_rabbitmq(rabbitmq_connection,
                                  rabbitmq_queue,
                                  rabbitmq_exchange,
                                  rabbitmq_routing_key,
-                                 user_topic_gen):
+                                 user_topic_gen,
+                                 id_to_name):
     """
-    What is says on the tin.
+    Publishes results on RabbitMQ for Reveal WP5.
 
     Inputs:
             - user_topic_gen: A python generator that generates users and a generator of associated topic keywords.
@@ -470,8 +497,9 @@ def publish_results_via_rabbitmq(rabbitmq_connection,
 
     for user_twitter_id, topic_to_score in user_topic_gen:
         results_dictionary = dict()
-        results_dictionary["contributor_id"] = str(user_twitter_id)
-        results_dictionary["type"] = [[str(user_type), repr(score)] for user_type, score in topic_to_score.items()]
+        results_dictionary["certh:contributor_id"] = str(user_twitter_id)
+        results_dictionary["certh:author_uri"] = "https://twitter.com/" + id_to_name[user_twitter_id]
+        results_dictionary["certh:type"] = [[str(user_type), float(score)] for user_type, score in topic_to_score.items()]
 
         results_string = json.dumps(results_dictionary)
 

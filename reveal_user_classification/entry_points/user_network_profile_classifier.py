@@ -49,6 +49,22 @@ def main():
                         type=str, required=True)
 
     ####################################################################################################################
+    # WP5 RabbitMQ credentials for publishing a message.
+    ####################################################################################################################
+    parser.add_argument("-wp5rmquri", "--wp5-rabbitmq-uri", dest="wp5_rabbitmq_uri",
+                        help="RabbitMQ connection URI for communication with WP5.",
+                        type=str, required=False, default=None)
+    parser.add_argument("-wp5rmqq", "--wp5-rabbitmq-queue", dest="wp5_rabbitmq_queue",
+                        help="RabbitMQ queue to check or create for publishing a success message for communication with WP5.",
+                        type=str, required=False, default=None)
+    parser.add_argument("-wp5rmqe", "--wp5-rabbitmq-exchange", dest="wp5_rabbitmq_exchange",
+                        help="RabbitMQ exchange name for communication with WP5.",
+                        type=str, required=False, default=None)
+    parser.add_argument("-wp5rmqrk", "--wp5-rabbitmq-routing-key", dest="wp5_rabbitmq_routing_key",
+                        help="RabbitMQ routing key for communication with WP5 (e.g. \"amqp://guest:guest@localhost:5672/vhost\").",
+                        type=str, required=False, default=None)
+
+    ####################################################################################################################
     # PServer credentials for storing data.
     ####################################################################################################################
     parser.add_argument("-pshn", "--pserver-host-name", dest="pserver_host_name",
@@ -114,6 +130,11 @@ def main():
     rabbitmq_exchange = args.rabbitmq_exchange
     rabbitmq_routing_key = args.rabbitmq_routing_key
 
+    wp5_rabbitmq_uri = args.wp5_rabbitmq_uri
+    wp5_rabbitmq_queue = args.wp5_rabbitmq_queue
+    wp5_rabbitmq_exchange = args.wp5_rabbitmq_exchange
+    wp5_rabbitmq_routing_key = args.wp5_rabbitmq_routing_key
+
     pserver_host_name = args.pserver_host_name
     pserver_client_name = args.pserver_client_name
     pserver_client_pass = args.pserver_client_pass
@@ -138,6 +159,10 @@ def main():
                                                 rabbitmq_queue=rabbitmq_queue,
                                                 rabbitmq_exchange=rabbitmq_exchange,
                                                 rabbitmq_routing_key=rabbitmq_routing_key,
+                                                wp5_rabbitmq_uri=wp5_rabbitmq_uri,
+                                                wp5_rabbitmq_queue=wp5_rabbitmq_queue,
+                                                wp5_rabbitmq_exchange=wp5_rabbitmq_exchange,
+                                                wp5_rabbitmq_routing_key=wp5_rabbitmq_routing_key,
                                                 pserver_host_name=pserver_host_name,
                                                 pserver_client_name=pserver_client_name,
                                                 pserver_client_pass=pserver_client_pass,

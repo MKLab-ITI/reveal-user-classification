@@ -6,8 +6,8 @@ from reveal_user_annotation.rabbitmq.rabbitmq_util import establish_rabbitmq_con
     rabbitmq_server_service
 from reveal_user_classification.reveal.utility import make_time_window_filter, safe_establish_mongo_connection,\
     get_graphs_and_lemma_matrix, integrate_graphs, fetch_twitter_lists, annotate_users, user_classification,\
-    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver, publish_results_via_rabbitmq,\
-    write_results_to_txt
+    get_user_topic_generator, write_results_to_mongo, write_topics_to_pserver, check_wp5_rabbitmq_connection,\
+    publish_results_via_rabbitmq, write_results_to_txt
 
 
 def user_network_profile_classifier(mongo_uri,
@@ -18,6 +18,10 @@ def user_network_profile_classifier(mongo_uri,
                                     rabbitmq_queue,
                                     rabbitmq_exchange,
                                     rabbitmq_routing_key,
+                                    wp5_rabbitmq_uri,
+                                    wp5_rabbitmq_queue,
+                                    wp5_rabbitmq_exchange,
+                                    wp5_rabbitmq_routing_key,
                                     pserver_host_name,
                                     pserver_client_name,
                                     pserver_client_pass,
@@ -85,7 +89,8 @@ def user_network_profile_classifier(mongo_uri,
     mention_graph,\
     retweet_graph,\
     user_id_set,\
-    node_to_id = get_graphs_and_lemma_matrix(client,
+    node_to_id,\
+    id_to_name = get_graphs_and_lemma_matrix(client,
                                              tweet_input_database_name,
                                              tweet_input_collection_name,
                                              spec,
@@ -195,18 +200,35 @@ def user_network_profile_classifier(mongo_uri,
             print("Unable to write results to PServer.")
 
     # Publish results and success message on RabbitMQ.
+    wp5_rabbitmq_uri,\
+    wp5_rabbitmq_queue,\
+    wp5_rabbitmq_exchange,\
+    wp5_rabbitmq_routing_key = check_wp5_rabbitmq_connection(wp5_rabbitmq_uri,
+                                                             wp5_rabbitmq_queue,
+                                                             wp5_rabbitmq_exchange,
+                                                             wp5_rabbitmq_routing_key,
+                                                             rabbitmq_uri,
+                                                             rabbitmq_queue,
+                                                             rabbitmq_exchange,
+                                                             rabbitmq_routing_key,
+                                                             tweet_input_database_name)
+
+    rabbitmq_server_service("restart")
+    wp5_rabbitmq_connection = establish_rabbitmq_connection(wp5_rabbitmq_uri)
+
+    publish_results_via_rabbitmq(rabbitmq_connection=wp5_rabbitmq_connection,
+                                 rabbitmq_queue=wp5_rabbitmq_queue,
+                                 rabbitmq_exchange=wp5_rabbitmq_exchange,
+                                 rabbitmq_routing_key=wp5_rabbitmq_routing_key,
+                                 user_topic_gen=get_user_topic_generator(prediction,
+                                                                         node_to_id,
+                                                                         label_to_lemma,
+                                                                         lemma_to_keyword),
+                                 id_to_name=id_to_name)
+    print("Results published via RabbitMQ.")
+
     rabbitmq_server_service("restart")
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
-
-    publish_results_via_rabbitmq(rabbitmq_connection,
-                                 rabbitmq_queue,
-                                 rabbitmq_exchange,
-                                 rabbitmq_routing_key,
-                                 get_user_topic_generator(prediction,
-                                                          node_to_id,
-                                                          label_to_lemma,
-                                                          lemma_to_keyword))
-    print("Results published via RabbitMQ.")
 
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
     rabbitmq_connection.close()
