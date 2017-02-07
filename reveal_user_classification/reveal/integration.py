@@ -28,12 +28,14 @@ def user_network_profile_classifier(mongo_uri,
                                     latest_n,
                                     lower_timestamp,
                                     upper_timestamp,
+                                    timestamp_sort_key,
                                     restart_probability,
                                     number_of_threads,
                                     number_of_users_to_annotate,
                                     max_number_of_labels,
                                     user_network_profile_classifier_db,
-                                    local_resources_folder):
+                                    local_resources_folder,
+                                    twitter_credentials):
     """
     Performs Online Social Network user classification.
 
@@ -60,6 +62,7 @@ def user_network_profile_classifier(mongo_uri,
            - latest_n: Get only the N most recent documents.
            - lower_timestamp: Get only documents created after this UNIX timestamp.
            - upper_timestamp: Get only documents created before this UNIX timestamp.
+           - timestamp_sort_key:
            - restart_probability:
            - number_of_threads:
            - number_of_users_to_annotate:
@@ -67,6 +70,9 @@ def user_network_profile_classifier(mongo_uri,
            - user_network_profile_classifier_db:
            - local_resources_folder: The preprocessed Twitter lists for a number of users are stored here.
     """
+    good_labels_path = local_resources_folder + "good_labels.txt"
+    bad_labels_path = local_resources_folder + "bad_labels.txt"
+
     ####################################################################################################################
     # Manage argument input.
     ####################################################################################################################
@@ -88,25 +94,33 @@ def user_network_profile_classifier(mongo_uri,
     ####################################################################################################################
     mention_graph,\
     retweet_graph,\
+    user_lemma_matrix,\
     user_id_set,\
     node_to_id,\
-    id_to_name = get_graphs_and_lemma_matrix(client,
-                                             tweet_input_database_name,
-                                             tweet_input_collection_name,
-                                             spec,
-                                             latest_n)
-    print("Users and user interactions extracted.")
+    lemma_to_attribute,\
+    id_to_name,\
+    id_to_username,\
+    id_to_listedcount = get_graphs_and_lemma_matrix(client,
+                                                    tweet_input_database_name,
+                                                    tweet_input_collection_name,
+                                                    spec,
+                                                    latest_n,
+                                                    timestamp_sort_key)
+    print("Users and user interactions extracted")
 
     adjacency_matrix,\
     node_to_id,\
     features,\
-    node_importances = integrate_graphs(mention_graph,
-                                        retweet_graph,
-                                        node_to_id,
-                                        restart_probability,
-                                        number_of_threads)
+    node_importances,\
+    old_node_list = integrate_graphs(mention_graph,
+                                     retweet_graph,
+                                     user_lemma_matrix,
+                                     node_to_id,
+                                     lemma_to_attribute,
+                                     restart_probability,
+                                     number_of_threads)
     number_of_users = adjacency_matrix.shape[0]
-    print("Number of users in biggest network component: ", number_of_users)
+    print("Number of users in fused graph: ", number_of_users)
     if number_of_users < 2:
         rabbitmq_server_service("restart")
         rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
@@ -114,22 +128,28 @@ def user_network_profile_classifier(mongo_uri,
         simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "NOT_ENOUGH_CONNECTIONS")
         rabbitmq_connection.close()
         print("Failure message published via RabbitMQ.")
+        return
 
     ####################################################################################################################
     # Annotate users.
     ####################################################################################################################
+
     twitter_lists_gen,\
     user_ids_to_annotate,\
     user_twitter_ids_mongo,\
     user_twitter_ids_local = fetch_twitter_lists(client,
                                                  twitter_app_key,
                                                  twitter_app_secret,
-                                                 user_network_profile_classifier_db,
+                                                 tweet_input_database_name,
                                                  local_resources_folder,
+                                                 id_to_listedcount,
                                                  node_importances,
                                                  number_of_users_to_annotate,
-                                                 node_to_id)
+                                                 node_to_id,
+                                                 twitter_credentials)
+
     print("Annotating users with Twitter ids: ", user_ids_to_annotate)
+
 
     user_label_matrix,\
     annotated_user_ids,\
@@ -140,9 +160,14 @@ def user_network_profile_classifier(mongo_uri,
                                       user_twitter_ids_mongo,
                                       user_twitter_ids_local,
                                       local_resources_folder,
-                                      user_network_profile_classifier_db,
+                                      tweet_input_database_name,
                                       node_to_id,
-                                      max_number_of_labels)
+                                      max_number_of_labels,
+                                      good_labels_path,
+                                      bad_labels_path,
+                                      user_lemma_matrix,
+                                      old_node_list,
+                                      lemma_to_attribute)
     number_of_labels = user_label_matrix.shape[1]
     print("Number of labels for classification: ", number_of_labels)
     if number_of_labels < 2:
@@ -152,6 +177,7 @@ def user_network_profile_classifier(mongo_uri,
         simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "NOT_ENOUGH_KEYWORDS")
         rabbitmq_connection.close()
         print("Failure message published via RabbitMQ.")
+        return
 
     ####################################################################################################################
     # Perform user classification.
@@ -174,10 +200,12 @@ def user_network_profile_classifier(mongo_uri,
                            get_user_topic_generator(prediction,
                                                     node_to_id,
                                                     label_to_lemma,
-                                                    lemma_to_keyword))
+                                                    lemma_to_keyword),
+                                                    id_to_name,
+                                                    id_to_username)
     print("Results written in MongoDB.")
 
-    # write_results_to_txt("/home/georgerizos/Documents/ncsr.txt",
+    # write_results_to_txt("/home/georgerizos/Documents/test.txt",
     #                      get_user_topic_generator(prediction,
     #                                               node_to_id,
     #                                               label_to_lemma,
@@ -231,5 +259,5 @@ def user_network_profile_classifier(mongo_uri,
     rabbitmq_connection = establish_rabbitmq_connection(rabbitmq_uri)
 
     simple_notification(rabbitmq_connection, rabbitmq_queue, rabbitmq_exchange, rabbitmq_routing_key, "SUCCESS")
-    rabbitmq_connection.close()
     print("Success message published via RabbitMQ.")
+    # rabbitmq_connection.close()

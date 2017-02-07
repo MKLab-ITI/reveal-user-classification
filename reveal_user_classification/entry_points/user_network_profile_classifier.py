@@ -89,19 +89,22 @@ def main():
     parser.add_argument("-uts", "--upper-timestamp", dest="upper_timestamp",
                         help="Get only documents created before this UNIX timestamp.",
                         type=float, required=False, default=None)
+    parser.add_argument("-tssk", "--timestamp-sort-key", dest="timestamp_sort_key",
+                        help="The document timestamp sort key.",
+                        type=str, required=False, default="timestamp_ms")
 
     ####################################################################################################################
     # Execution parameters.
     ####################################################################################################################
     parser.add_argument("-rp", "--restart-probability", dest="restart_probability",
                         help="Random walk restart probability.",
-                        type=float, required=False, default=0.5)
+                        type=float, required=False, default=0.1)
     parser.add_argument("-nt", "--number-of-threads", dest="number_of_threads",
                         help="The number of parallel threads for feature extraction and classification.",
-                        type=int, required=False, default=None)
+                        type=int, required=False, default=4)
     parser.add_argument("-nua", "--number-of-users-to-annotate", dest="number_of_users_to_annotate",
                         help="We extract keywords from twitter lists for a certain number of central users.",
-                        type=int, required=False, default=90)  # Approximately 1 per minute.
+                        type=int, required=False, default=15)  # Approximately 1 per minute.
     parser.add_argument("-mnl", "--max-number-of-labels", dest="max_number_of_labels",
                         help="The maximum number of topics/labels.",
                         type=int, required=False, default=500)
@@ -114,7 +117,10 @@ def main():
                         type=str, required=False, default="user_network_profile_classifier_db")
     parser.add_argument("-lrf", "--local-resources-folder", dest="local_resources_folder",
                         help="We may have a certain number of twitter list data stored locally.",
-                        type=str, required=False, default="/data/LocalStorage/memory/SNOW/twitter_lists/")
+                        type=str, required=False, default="/data/user_classification/")
+    parser.add_argument("-tc", "--twitter-credentials", dest="twitter_credentials",
+                        help="Twitter credentials.",
+                        type=str, required=False, default="/data/user_classification/twitter_credentials.txt")
 
     # Extract arguments.
     args = parser.parse_args()
@@ -142,6 +148,7 @@ def main():
     latest_n = args.latest_n
     lower_timestamp = args.lower_timestamp
     upper_timestamp = args.upper_timestamp
+    timestamp_sort_key = args.timestamp_sort_key
 
     restart_probability = args.restart_probability
     number_of_threads = args.number_of_threads
@@ -150,6 +157,7 @@ def main():
 
     user_network_profile_classifier_db = args.user_network_profile_classifier_db
     local_resources_folder = args.local_resources_folder
+    twitter_credentials = args.twitter_credentials
 
     integration.user_network_profile_classifier(mongo_uri=mongo_uri,
                                                 assessment_id=assessment_id,
@@ -169,9 +177,11 @@ def main():
                                                 latest_n=latest_n,
                                                 lower_timestamp=lower_timestamp,
                                                 upper_timestamp=upper_timestamp,
+                                                timestamp_sort_key=timestamp_sort_key,
                                                 restart_probability=restart_probability,
                                                 number_of_threads=number_of_threads,
                                                 number_of_users_to_annotate=number_of_users_to_annotate,
                                                 max_number_of_labels=max_number_of_labels,
                                                 user_network_profile_classifier_db=user_network_profile_classifier_db,
-                                                local_resources_folder=local_resources_folder)
+                                                local_resources_folder=local_resources_folder,
+                                                twitter_credentials=twitter_credentials)

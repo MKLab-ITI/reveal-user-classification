@@ -26,10 +26,6 @@ To install for all users on Unix/Linux:
 
     python3.4 setup.py build
     sudo python3.4 setup.py install
-  
-Alternatively:
-
-    pip install reveal-user-classification
 
 Reveal-FP7 Integration
 ----------------------
